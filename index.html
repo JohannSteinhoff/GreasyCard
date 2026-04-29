@@ -1338,10 +1338,7 @@ function drawMutexLines(s) {
   const W = Math.max(1, boardRect.width), H = Math.max(1, boardRect.height);
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
 
-  const start = {
-    x: keyRect.left - boardRect.left + keyRect.width / 2,
-    y: keyRect.top - boardRect.top + 2
-  };
+  const keyTop = keyRect.top - boardRect.top + 2;
   const end = {
     x: holderRect.left - boardRect.left + holderRect.width / 2,
     y: holderRect.top - boardRect.top + holderRect.height / 2
@@ -1352,9 +1349,17 @@ function drawMutexLines(s) {
   const endX = Math.max(10, Math.min(W - 10, endSide));
 
   svg.innerHTML = active.map((name, i) => {
+    const nameRect = document.getElementById(`mx-${name}`)?.getBoundingClientRect();
+    const start = nameRect ? {
+      x: nameRect.left - boardRect.left + nameRect.width / 2,
+      y: nameRect.top - boardRect.top + 2
+    } : {
+      x: keyRect.left - boardRect.left + keyRect.width / 2,
+      y: keyTop
+    };
     const lane = i * 12;
     const offset = (i - (active.length - 1) / 2) * 10;
-    const sx = start.x + offset;
+    const sx = start.x;
     const sy = start.y - lane;
     const edgeX = side + (side < W / 2 ? lane : -lane);
     const sideY = Math.max(20, Math.min(H - 34, end.y + offset));
