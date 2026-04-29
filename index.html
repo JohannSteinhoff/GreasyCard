@@ -181,6 +181,28 @@ body { background:var(--bg); color:var(--text); font-family:'Courier New',monosp
 .seat.sw .sname { color:var(--win); text-shadow:0 0 8px rgba(63,185,80,.7); }
 .seat.sl2 .sname { color:var(--lose); opacity:.6; }
 .shand { display:flex; gap:2px; }
+.dealer-card {
+  width:36px; height:52px; border-radius:4px;
+  border:2px solid var(--gold);
+  background:linear-gradient(135deg,#172033 0%,#2a4f89 52%,#0f1b2d 100%);
+  color:var(--gold); display:flex; align-items:center; justify-content:center;
+  font-size:16px; font-weight:bold; box-shadow:0 0 14px rgba(232,200,74,.65),1px 2px 5px rgba(0,0,0,.55);
+  position:relative; overflow:hidden; animation:dealerPulse 1.4s ease-in-out infinite;
+}
+.dealer-card::before {
+  content:''; position:absolute; inset:-35% -80%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.42),transparent);
+  transform:rotate(25deg); animation:dealerSweep 2.2s ease-in-out infinite;
+}
+.dealer-card span { position:relative; z-index:1; text-shadow:0 0 8px rgba(232,200,74,.9); }
+@keyframes dealerPulse {
+  0%,100% { transform:translateY(0) rotate(-2deg); box-shadow:0 0 10px rgba(232,200,74,.5),1px 2px 5px rgba(0,0,0,.55); }
+  50% { transform:translateY(-4px) rotate(2deg); box-shadow:0 0 20px rgba(232,200,74,.9),1px 5px 9px rgba(0,0,0,.6); }
+}
+@keyframes dealerSweep {
+  0%,35% { transform:translateX(-120%) rotate(25deg); }
+  65%,100% { transform:translateX(120%) rotate(25deg); }
+}
 
 /* RIGHT */
 #right { background:var(--panel); border-left:1px solid var(--border);
@@ -506,8 +528,13 @@ function simulate(seed, np, cpb) {
     const greasy = draw();
     lines.push(`PLAYER ${dealer}: greasy card is ${cn(greasy)}`);
 
-    for (let i = 0; i < np; i++) hands[i] = [draw()];
-    for (let i = 0; i < np; i++) lines.push(`PLAYER ${i+1}: hand ${cn(hands[i][0])}`);
+    for (let i = 0; i < np; i++) hands[i] = [];
+    for (let i = 0; i < np; i++) {
+      const pid = i + 1;
+      if (pid === dealer) continue;
+      hands[i] = [draw()];
+      lines.push(`PLAYER ${pid}: hand ${cn(hands[i][0])}`);
+    }
 
     bagChips = cpb; bagNum = 1;
     lines.push(`BAG: ${cpb} chips`);
@@ -576,6 +603,10 @@ function miniCard(name, isGreasy=false) {
   if (!name) return '';
   const {color} = cardInfo(name);
   return `<span class="mc ${color}${isGreasy?' glow':''}">${name}</span>`;
+}
+
+function dealerMarkerHTML() {
+  return '<div class="dealer-card"><span>D</span></div>';
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -661,14 +692,8 @@ function buildSimulation(rawLog) {
   // Parse log lines into typed event objects
   events = rawLog.split('\n').map(l => l.trim()).filter(l => l).map(parseLine);
 
-  // Detect nPlayers from the initial deal in round 1
-  nPlayers = 0;
-  let inDeal = false;
-  for (const ev of events) {
-    if (ev.type === 'shuffle' && ev.round === 1) { inDeal = true; continue; }
-    if (inDeal && ev.type === 'hand_single') nPlayers++;
-    if (inDeal && ev.type === 'bag_reset') break;
-  }
+  // The dealer does not receive a starting card, so the initial deal has np - 1 hand events.
+  nPlayers = G.np;
 
   // Build states via the event → state machine
   const BASE = mkState();
@@ -707,7 +732,7 @@ function buildSimulation(rawLog) {
           s.players[pi].hand = [ev.card]; s.dealCount++;
           s.deckTop = (s.deckTop + 1) % 52; s.deckCount--;
           s.msg = `Dealt ${ev.card} to Player ${ev.p}`;
-          if (s.dealCount === s.nPlayers) s.dealing = false;
+          if (s.dealCount === s.nPlayers - 1) s.dealing = false;
         } else {
           s.players[pi].hand = [ev.card]; s.currentTurn = ev.p;
           s.threadStatus[pi] = 'running';
@@ -1161,7 +1186,9 @@ function render(idx) {
     if (p.status === 'dealer')   label += ' (D)';
     if (p.id === s.currentTurn)  label += ' ←';
     nameEl.textContent = label;
-    handEl.innerHTML = p.hand.map(c => cardHTML(c, c === s.greasyCard ? 'gcard' : '')).join('');
+    handEl.innerHTML = p.status === 'dealer' && p.hand.length === 0
+      ? dealerMarkerHTML()
+      : p.hand.map(c => cardHTML(c, c === s.greasyCard ? 'gcard' : '')).join('');
   });
 
   const vis = s.deckVisible, count = s.deckCount, top = s.deckTop;

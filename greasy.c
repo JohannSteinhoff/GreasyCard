@@ -341,7 +341,7 @@ void barrier_wait(void) {                                           // blocks un
 /* ═══════════════════════════════════════════════════════════════
    do_dealer — everything the dealer does for one round:
      1. Shuffle deck and pick the Greasy Card
-     2. Deal one card to each player
+     2. Deal one card to each non-dealer player
      3. Reset chip bag
      4. Set round state and signal round start
      5. Wait for someone to win
@@ -361,14 +361,20 @@ void do_dealer(Player *me, int round) {                                         
     greasy_card = deck_draw(&deck);                                                         // remove the top card from the deck and make it this round's target
     log_write("PLAYER %d: greasy card is %s\n", me->id, card_name(greasy_card));          // log which card is the greasy (winning) card for this round
 
-    /* 3. Deal one card to every player and log each hand */
-    for (int i = 0; i < n_players; i++) {                                                  // deal one starting card to each player in order
+    /* 3. Deal one card to every non-dealer player and log each hand */
+    for (int i = 0; i < n_players; i++) {                                                  // clear every hand before dealing the new round
+        players[i].hand_size = 0;                                                           // the dealer keeps an empty hand because they are not playing
+        if (players[i].id == me->id)                                                       // skip the dealer during the starting deal
+            continue;                                                                       // move on to the next player without drawing a card
         players[i].hand[0] = deck_draw(&deck);                                             // draw from the top of the deck and place it in slot 0 of their hand
-        players[i].hand_size = 1;                                                           // each player starts the round with exactly one card
+        players[i].hand_size = 1;                                                           // each non-dealer starts the round with exactly one card
     }                                                                                       // end of dealing loop
-    for (int i = 0; i < n_players; i++)                                                    // log every player's starting hand after all dealing is done
+    for (int i = 0; i < n_players; i++) {                                                  // log every non-dealer player's starting hand after all dealing is done
+        if (players[i].id == me->id)                                                       // the dealer has no hand to log this round
+            continue;                                                                       // skip the dealer hand entry
         log_write("PLAYER %d: hand %s\n",                                                  // format: "PLAYER X: hand Y\n"
                   players[i].id, card_name(players[i].hand[0]));                           // substitute player id and their single starting card name
+    }                                                                                       // end of starting-hand logging loop
 
     /* 4. Reset round state */
     round_winner  = -1;                                                                     // -1 indicates no winner has been declared yet
