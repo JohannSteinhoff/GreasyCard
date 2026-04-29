@@ -1,0 +1,1634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Greasy Cards — CS4328 Visualizer</title>
+<style>
+:root {
+  --felt: #1a6b3c; --felt-dark: #0d3d20; --felt-edge: #0f4a28;
+  --gold: #e8c84a; --card-red: #cc2222; --card-black: #111;
+  --bg: #0d1117; --panel: #161b22; --panel2: #1c2128;
+  --border: #30363d; --text: #c9d1d9; --dim: #8b949e;
+  --accent: #58a6ff; --win: #3fb950; --lose: #f85149;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background:var(--bg); color:var(--text); font-family:'Courier New',monospace;
+  height:100vh; display:grid; grid-template-rows:auto 1fr; overflow:hidden; }
+
+/* HEADER */
+#hdr { background:#21262d; border-bottom:2px solid var(--border);
+  padding:7px 14px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+#hdr h1 { font-size:15px; color:var(--gold); letter-spacing:2px; margin-right:6px; }
+.badge { background:var(--panel2); border:1px solid var(--border); border-radius:4px;
+  padding:2px 9px; font-size:12px; display:flex; align-items:center; gap:4px; }
+.bl { color:var(--dim); } .bv { color:var(--gold); font-weight:bold; }
+#ctrl { margin-left:auto; display:flex; align-items:center; gap:5px; }
+.btn { background:#30363d; border:1px solid #484f58; color:var(--text);
+  padding:3px 10px; border-radius:4px; cursor:pointer; font-size:13px;
+  font-family:monospace; }
+.btn:hover { background:#484f58; } .btn:disabled { opacity:.3; cursor:default; }
+.pbtn { background:#0d4429; border-color:#3fb950; color:#3fb950; }
+.pbtn:hover { background:#1a5c3a; }
+#speed { width:70px; accent-color:var(--gold); }
+#sc { font-size:11px; color:var(--dim); min-width:75px; text-align:right; }
+#cmd-bar { display:flex; align-items:center; gap:5px; background:#0d1117; border:1px solid var(--border); border-radius:4px; padding:2px 10px; font-size:12px; white-space:nowrap; font-family:'Courier New',monospace; }
+.cmd-nm { color:var(--win); }
+.arg-seed { color:var(--gold); border-bottom:1px dashed rgba(232,200,74,.5); cursor:pointer; padding:0 2px; border-radius:2px; }
+.arg-seed:hover { background:rgba(232,200,74,.15); }
+.arg-fixed { color:var(--accent); }
+.arg-lbl { color:var(--dim); font-size:10px; }
+
+/* MAIN */
+#main { display:grid; grid-template-columns:248px 1fr 260px; overflow:hidden; }
+
+/* LEFT */
+#left { background:var(--panel); border-right:1px solid var(--border);
+  overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:8px;
+  min-height:0; /* CRITICAL: lets CSS Grid constrain height so overflow-y:auto works */ }
+.box { background:#0d1117; border:1px solid var(--border); border-radius:5px;
+  overflow:hidden; flex-shrink:0; }
+.boxt { background:#21262d; padding:4px 9px; font-size:10px; color:var(--gold);
+  letter-spacing:1px; border-bottom:1px solid var(--border); text-transform:uppercase; }
+.sc { padding:7px 9px; font-size:10px; line-height:1.65; overflow-x:auto; white-space:nowrap; }
+.kw{color:#ff7b72;} .ty{color:#79c0ff;} .fn{color:#ffa657;} .cm{color:#555;} .sn{color:#d2a8ff;}
+.frow { display:flex; justify-content:space-between; align-items:baseline;
+  padding:2px 8px; border-bottom:1px solid #1c2128; gap:8px; min-width:0; }
+.frow:last-child{border-bottom:none;}
+.fk{color:#ffa657;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+.fv{color:#a8ff78;font-size:11px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right;flex-shrink:0;max-width:60%;}
+.fv.hi{color:#ffd700;}
+.prow { display:flex; align-items:center; gap:5px; padding:3px 7px;
+  border-bottom:1px solid #1c2128; font-size:10px; }
+.prow:last-child{border-bottom:none;}
+.pid{color:var(--dim);min-width:26px;}
+.ph{display:flex;gap:2px;flex-wrap:wrap;flex:1;}
+.mc { background:white; border-radius:2px; padding:0 3px; font-size:9px;
+  font-weight:bold; border:1px solid #ccc; min-width:16px; text-align:center; line-height:15px; }
+.mc.red{color:var(--card-red);} .mc.black{color:#111;}
+.mc.glow{border-color:var(--gold);box-shadow:0 0 3px var(--gold);}
+.ps{font-size:9px;padding:1px 4px;border-radius:2px;margin-left:auto;}
+.ps-d{background:#1f3a5f;color:var(--accent);}
+.ps-a{background:#1a3a0a;color:var(--win);}
+.ps-w{background:#1a5c1a;color:#fff;}
+.ps-l{background:#3a0a0a;color:var(--lose);}
+
+/* CENTER */
+#center { display:flex; flex-direction:column; overflow:hidden; background:var(--felt-dark); }
+
+/* Tab bar */
+#tabbar { display:flex; background:#21262d; border-bottom:2px solid var(--border); flex-shrink:0; }
+.tab { padding:7px 13px; font-size:11px; cursor:pointer; border:none; background:transparent;
+  color:var(--dim); font-family:monospace; border-bottom:2px solid transparent;
+  margin-bottom:-2px; letter-spacing:.5px; transition:color .15s; }
+.tab:hover { color:var(--text); background:rgba(255,255,255,.03); }
+.tab.active { color:var(--gold); border-bottom-color:var(--gold); }
+
+/* Tab content area */
+#tabcontent { flex:1; position:relative; overflow:hidden; min-height:0; }
+.tab-panel { position:absolute; inset:0; display:none; flex-direction:column; }
+.tab-panel.tp-active { display:flex; }
+
+/* Chart panels */
+.chart-panel { background:#0a0e14; padding:8px; gap:8px; }
+.chart-panel.tp-active { display:flex; flex-direction:column; }
+#panel-players.tp-active { display:grid; grid-template-rows:1fr 1fr; gap:8px; }
+.ptop { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; min-height:0; }
+.cwrap { position:relative; background:#0d1117; border-radius:4px;
+  border:1px solid var(--border); min-height:0; overflow:hidden; }
+.cwrap canvas { display:block; }
+
+#board { position:relative; overflow:visible; flex:1; display:flex;
+  align-items:center; justify-content:center; }
+
+#table { width:420px; height:275px;
+  background:radial-gradient(ellipse at 45% 40%, #227a48 0%, var(--felt) 55%, var(--felt-edge) 100%);
+  border-radius:50%; border:8px solid #0a3018;
+  box-shadow:0 0 0 4px #1a5c30, 0 0 60px rgba(0,0,0,.85), inset 0 4px 14px rgba(0,0,0,.5);
+  position:relative; display:flex; align-items:center; justify-content:center; gap:18px; }
+
+#msg { background:rgba(0,0,0,.5); border-top:1px solid var(--border);
+  padding:4px 12px; font-size:11px; color:rgba(255,255,255,.65); text-align:center; min-height:23px; }
+
+/* Deck buffer */
+#dbuf { background:var(--panel); border-top:1px solid var(--border); padding:7px 11px; }
+#dbuf-hdr { display:flex; justify-content:space-between; margin-bottom:4px; }
+.dbt{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;}
+#dstat{font-size:10px;color:var(--dim);}
+#dbuf-row { display:flex; gap:1px; overflow-x:auto; padding-bottom:2px; }
+.dc { width:19px; height:25px; background:#1c2128; border:1px solid #2d333b;
+  border-radius:2px; display:flex; align-items:center; justify-content:center;
+  font-size:8px; color:var(--dim); flex-shrink:0; transition:background .1s,border-color .1s; }
+.dc.act { background:#0a2010; border-color:#2ea043; color:#a8ff78; }
+.dc.tp { border-top:2px solid var(--gold); background:#1a2a00; color:var(--gold); }
+.dc.emp { background:#0a0e14; border-color:#1c2128; color:#2d333b; }
+
+/* Greasy + deck areas inside table */
+.tarea { display:flex; flex-direction:column; align-items:center; gap:4px; }
+.albl { font-size:8px; color:rgba(255,255,255,.4); text-transform:uppercase; letter-spacing:1px; }
+
+/* Cards */
+.card { width:36px; height:52px; background:white; border-radius:4px;
+  border:1px solid #ccc; display:flex; flex-direction:column;
+  align-items:center; justify-content:space-between;
+  padding:3px 2px; box-shadow:1px 2px 5px rgba(0,0,0,.55);
+  font-weight:bold; position:relative; flex-shrink:0; }
+.card .cv{font-size:12px;line-height:1;align-self:flex-start;}
+.card .cs{font-size:15px;line-height:1;}
+.card .cv2{font-size:12px;line-height:1;align-self:flex-end;transform:rotate(180deg);}
+.card.red{color:var(--card-red);} .card.black{color:#111;}
+.card.gcard{border:2px solid var(--gold);box-shadow:0 0 10px rgba(232,200,74,.75),1px 2px 5px rgba(0,0,0,.5);}
+.card.back{background:linear-gradient(135deg,#1e3a5f 0%,#2e5499 60%,#1e3a5f 100%);
+  border:2px solid #4a90d9;}
+
+/* Big greasy card in center */
+#gc { width:44px; height:64px; background:white; border-radius:5px;
+  border:2px solid var(--gold);
+  box-shadow:0 0 16px rgba(232,200,74,.9),0 2px 8px rgba(0,0,0,.6);
+  display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+  padding:4px 3px; font-weight:bold; }
+#gc .cv{font-size:14px;align-self:flex-start;}
+#gc .cs{font-size:18px;}
+#gc .cv2{font-size:14px;align-self:flex-end;transform:rotate(180deg);}
+#gc-empty { color:#555; font-size:20px; }
+
+/* Deck stack */
+#dstack { position:relative; width:40px; height:56px; }
+.sl { position:absolute; width:40px; height:56px;
+  background:linear-gradient(135deg,#1e3a5f,#2e5499);
+  border-radius:4px; border:1px solid #4a90d9; }
+#dc-lbl { font-size:11px; color:rgba(255,255,255,.6); text-align:center; }
+
+/* Chip bag */
+#bag { position:absolute; bottom:18px; right:calc(26% - 30px);
+  display:flex; flex-direction:column; align-items:center; gap:2px; }
+.bag-vis { width:50px; height:46px;
+  background:radial-gradient(ellipse at 40% 35%,#f0c040,#c8960c);
+  border-radius:50% 50% 32% 32% / 45% 45% 32% 32%;
+  border:2px solid #a07808; box-shadow:0 3px 8px rgba(0,0,0,.6);
+  display:flex; align-items:center; justify-content:center;
+  flex-direction:column; }
+.bc { font-size:15px; font-weight:bold; color:#1a1a00; }
+.bcs { font-size:8px; color:#4a3000; }
+.bn { font-size:9px; color:rgba(255,255,255,.5); }
+
+/* Player seats */
+.seat { position:absolute; display:flex; flex-direction:column;
+  align-items:center; gap:3px; transform:translate(-50%,-50%); z-index:10; }
+.sname { font-size:11px; font-weight:bold; color:rgba(255,255,255,.65);
+  background:rgba(0,0,0,.65); padding:2px 7px; border-radius:3px; white-space:nowrap; }
+.seat.sa .sname { color:var(--gold); text-shadow:0 0 8px rgba(232,200,74,.8); }
+.seat.sd .sname::after { content:' [D]'; color:var(--accent); font-size:9px; }
+.seat.sw .sname { color:var(--win); text-shadow:0 0 8px rgba(63,185,80,.7); }
+.seat.sl2 .sname { color:var(--lose); opacity:.6; }
+.shand { display:flex; gap:2px; }
+
+/* RIGHT */
+#right { background:var(--panel); border-left:1px solid var(--border);
+  display:flex; flex-direction:column; overflow:hidden; min-height:0; }
+#lhdr { background:#21262d; padding:5px 11px; font-size:10px; color:var(--dim);
+  border-bottom:1px solid var(--border); text-transform:uppercase; letter-spacing:1px; }
+#elog { flex:1; overflow-y:auto; padding:3px; scroll-behavior:smooth; }
+.ev { padding:3px 7px; font-size:10px; border-radius:2px; margin:1px 0;
+  cursor:pointer; border-left:2px solid transparent; line-height:1.45; }
+.ev:hover{background:#21262d;}
+.ev.cur{background:#0d2a46;border-left-color:var(--gold);}
+.ev-sh{color:var(--accent);} .ev-gr{color:var(--gold);} .ev-ha{color:#94a3b8;}
+.ev-dr{color:#3fb950;} .ev-di{color:#f97316;} .ev-wi{color:var(--win);font-weight:bold;}
+.ev-lo{color:var(--lose);} .ev-ch{color:#c084fc;} .ev-ba{color:#e8c84a;}
+.ev-re{color:var(--accent);opacity:.6;} .ev-dk{color:#2d3748;font-size:9px;}
+
+#prog { padding:7px 11px; border-top:1px solid var(--border); }
+#pt { height:4px; background:#30363d; border-radius:2px; overflow:hidden; cursor:pointer; }
+#pf { height:100%; background:var(--gold); border-radius:2px; transition:width .1s; }
+#pl { font-size:10px; color:var(--dim); margin-top:3px; text-align:center; }
+
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#30363d;border-radius:2px;}
+</style>
+</head>
+<body>
+
+<div id="hdr">
+  <h1>♣ Greasy Cards CS4328</h1>
+  <div class="badge"><span class="bl">Round</span><span class="bv" id="b-r">–</span></div>
+  <div class="badge"><span class="bl">Greasy Card</span><span class="bv" id="b-g">–</span></div>
+  <div class="badge"><span class="bl">Turn</span><span class="bv" id="b-t">–</span></div>
+  <div class="badge"><span class="bl">Dealer</span><span class="bv" id="b-d">–</span></div>
+  <div id="cmd-bar" title="./greasy &lt;seed&gt; &lt;num_players&gt; &lt;chips_per_bag&gt;">
+    <span class="cmd-nm">./greasy</span>
+    <span class="arg-seed" id="arg-seed" onclick="cycleSeed()" title="Seed — click to cycle 1→2→3→4→5→1">5</span>
+    <span class="arg-fixed" title="num_players (fixed at 6 for this demo)">6</span>
+    <span class="arg-fixed" title="chips_per_bag (fixed at 30 for this demo)">30</span>
+  </div>
+  <div id="ctrl">
+    <button class="btn" id="bn-first" onclick="goTo(0)">⏮</button>
+    <button class="btn" id="bn-prev"  onclick="step(-1)">◀</button>
+    <button class="btn pbtn" id="bn-play" onclick="togglePlay()">▶ Play</button>
+    <button class="btn" id="bn-next"  onclick="step(1)">▶</button>
+    <button class="btn" id="bn-last"  onclick="goTo(states.length-1)">⏭</button>
+    <input type="range" id="speed" min="1" max="10" value="5">
+    <span id="sc">0 / 0</span>
+  </div>
+</div>
+
+<div id="main">
+  <!-- LEFT: Data Structures -->
+  <div id="left">
+    <div class="box">
+      <div class="boxt">struct Deck</div>
+      <div class="sc">
+        <span class="kw">typedef struct</span> {<br>
+        &nbsp;<span class="ty">int</span> <span class="fn">cards</span>[52]; <span class="cm">// circular buf</span><br>
+        &nbsp;<span class="ty">int</span> <span class="fn">top</span>; &nbsp;&nbsp;<span class="cm">// draw head</span><br>
+        &nbsp;<span class="ty">int</span> <span class="fn">count</span>; <span class="cm">// remaining</span><br>
+        &nbsp;<span class="ty">int</span> <span class="fn">size</span>; &nbsp;<span class="cm">// always 52</span><br>
+        } <span class="sn">Deck</span>;
+      </div>
+      <div style="border-top:1px solid #1c2128">
+        <div class="frow"><span class="fk">top</span><span class="fv" id="fv-top">0</span></div>
+        <div class="frow"><span class="fk">count</span><span class="fv" id="fv-count">52</span></div>
+        <div class="frow"><span class="fk">size</span><span class="fv">52</span></div>
+      </div>
+    </div>
+
+    <div class="box">
+      <div class="boxt">struct ChipBag</div>
+      <div class="sc">
+        <span class="kw">typedef struct</span> {<br>
+        &nbsp;<span class="ty">int</span> <span class="fn">chips</span>;<br>
+        &nbsp;<span class="ty">int</span> <span class="fn">bag_number</span>;<br>
+        &nbsp;<span class="ty">int</span> <span class="fn">chips_per_bag</span>;<br>
+        &nbsp;<span class="ty">pthread_mutex_t</span> <span class="fn">lock</span>;<br>
+        } <span class="sn">ChipBag</span>;
+      </div>
+      <div style="border-top:1px solid #1c2128">
+        <div class="frow"><span class="fk">chips</span><span class="fv" id="fv-chips">0</span></div>
+        <div class="frow"><span class="fk">bag_number</span><span class="fv" id="fv-bn">1</span></div>
+        <div class="frow"><span class="fk">chips_per_bag</span><span class="fv" id="fv-cpb">30</span></div>
+        <div class="frow"><span class="fk">lock</span><span class="fv" style="color:var(--dim)">mutex</span></div>
+      </div>
+    </div>
+
+    <div class="box">
+      <div class="boxt">Player[n] hands</div>
+      <div class="sc">
+        <span class="kw">typedef struct</span> {<br>
+        &nbsp;<span class="ty">int</span> <span class="fn">id</span>;<br>
+        &nbsp;<span class="ty">int</span> <span class="fn">hand</span>[52];<br>
+        &nbsp;<span class="ty">int</span> <span class="fn">hand_size</span>;<br>
+        } <span class="sn">Player</span>;
+      </div>
+      <div id="plist" style="border-top:1px solid #1c2128"></div>
+    </div>
+
+    <div class="box">
+      <div class="boxt">Global State</div>
+      <div style="padding:2px 0">
+        <div class="frow"><span class="fk">current_round</span><span class="fv" id="fv-cr">0</span></div>
+        <div class="frow"><span class="fk">current_turn</span><span class="fv" id="fv-ct">0</span></div>
+        <div class="frow"><span class="fk">dealer_this_round</span><span class="fv" id="fv-dl">0</span></div>
+        <div class="frow"><span class="fk">greasy_card</span><span class="fv hi" id="fv-gc">–</span></div>
+        <div class="frow"><span class="fk">round_winner</span><span class="fv" id="fv-rw">-1</span></div>
+        <div class="frow"><span class="fk">round_over</span><span class="fv" id="fv-ro">0</span></div>
+        <div class="frow"><span class="fk">n_players</span><span class="fv" id="fv-np">0</span></div>
+        <div class="frow"><span class="fk">barrier_count</span><span class="fv" id="fv-bc">0</span></div>
+      </div>
+    </div>
+
+    <div class="box">
+      <div class="boxt">Thread Status</div>
+      <div id="tlist" style="padding:2px 0"></div>
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div id="center">
+    <div id="tabbar">
+      <button class="tab active" data-tab="table" onclick="setTab('table')">♣ Game Table</button>
+      <button class="tab" data-tab="chips"   onclick="setTab('chips')">◈ Chip Bag</button>
+      <button class="tab" data-tab="deck"    onclick="setTab('deck')">▦ Deck Track</button>
+      <button class="tab" data-tab="players" onclick="setTab('players')">▤ Player Stats</button>
+      <button class="tab" data-tab="rounds"  onclick="setTab('rounds')">⊞ Rounds</button>
+    </div>
+    <div id="tabcontent">
+
+      <!-- Tab: Game Table -->
+      <div id="panel-table" class="tab-panel tp-active">
+        <div id="board">
+          <div id="table">
+            <div class="tarea">
+              <div class="albl">Greasy Card</div>
+              <div id="gc"><span class="cv" id="gc-v">?</span><span class="cs" id="gc-s">★</span><span class="cv2" id="gc-v2">?</span></div>
+            </div>
+            <div class="tarea">
+              <div class="albl">Deck</div>
+              <div id="dstack">
+                <div class="sl" style="top:3px;left:2px;opacity:.4;"></div>
+                <div class="sl" style="top:1px;left:1px;opacity:.65;"></div>
+                <div class="sl" style="top:0;left:0;"></div>
+              </div>
+              <div id="dc-lbl">52 cards</div>
+            </div>
+          </div>
+          <div id="bag">
+            <div class="bag-vis"><span class="bc" id="b-chips">0</span><span class="bcs">chips</span></div>
+            <span class="bn" id="b-bagn">Bag #1</span>
+          </div>
+        </div>
+        <div id="msg">Press ▶ Play or use ▶ / ◀ to step through the game</div>
+        <div id="dbuf">
+          <div id="dbuf-hdr">
+            <span class="dbt">Deck — Circular Buffer (cards[52])</span>
+            <span id="dstat">top:0 | count:52</span>
+          </div>
+          <div id="dbuf-row"></div>
+        </div>
+      </div>
+
+      <!-- Tab: Chip Bag -->
+      <div id="panel-chips" class="tab-panel chart-panel">
+        <div class="cwrap" style="flex:1"><canvas id="ch-bag"></canvas></div>
+      </div>
+
+      <!-- Tab: Deck Track -->
+      <div id="panel-deck" class="tab-panel chart-panel">
+        <div class="cwrap" style="flex:1"><canvas id="ch-deck"></canvas></div>
+      </div>
+
+      <!-- Tab: Player Stats -->
+      <div id="panel-players" class="tab-panel chart-panel">
+        <div class="ptop">
+          <div class="cwrap"><canvas id="ch-wins"></canvas></div>
+          <div class="cwrap"><canvas id="ch-cpeat"></canvas></div>
+          <div class="cwrap"><canvas id="ch-turns"></canvas></div>
+        </div>
+        <div class="cwrap" style="min-height:0"><canvas id="ch-hands"></canvas></div>
+      </div>
+
+      <!-- Tab: Rounds -->
+      <div id="panel-rounds" class="tab-panel chart-panel">
+        <div class="cwrap" style="flex:1"><canvas id="ch-rounds"></canvas></div>
+      </div>
+
+    </div><!-- #tabcontent -->
+  </div>
+
+  <!-- RIGHT: Event log -->
+  <div id="right">
+    <div id="lhdr">Event Log</div>
+    <div id="elog"></div>
+    <div id="prog">
+      <div id="pt" onclick="clickProg(event)"><div id="pf" style="width:0%"></div></div>
+      <div id="pl">Step 0 of 0</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+// EMBEDDED GAME LOG
+// ══════════════════════════════════════════════════════════════════
+const RAW_LOG = `PLAYER 1: shuffles deck for round 1
+PLAYER 1: greasy card is 3
+PLAYER 1: hand 4
+PLAYER 2: hand 6
+PLAYER 3: hand 9
+PLAYER 4: hand 10
+PLAYER 5: hand 4
+PLAYER 6: hand K
+BAG: 30 chips
+PLAYER 2: hand 6
+PLAYER 2: draws 9
+PLAYER 2: discards 9 at random
+PLAYER 2: hand 6
+DECK: K 3 7 6 5 10 7 K 8 9 A 10 5 9 6 A Q 4 8 Q 4 5 K 2 Q 7 2 5 3 2 2 8 J 8 A 10 Q J A 6 3 J J 7 9
+PLAYER 2: eats 3 chips
+BAG: 27 Chips left
+PLAYER 3: hand 9
+PLAYER 3: draws K
+PLAYER 3: discards K at random
+PLAYER 3: hand 9
+DECK: 3 7 6 5 10 7 K 8 9 A 10 5 9 6 A Q 4 8 Q 4 5 K 2 Q 7 2 5 3 2 2 8 J 8 A 10 Q J A 6 3 J J 7 9 K
+PLAYER 3: eats 4 chips
+BAG: 23 Chips left
+PLAYER 4: hand 10
+PLAYER 4: draws 3
+PLAYER 4: hand (10,3) <> Greasy card is 3
+PLAYER 4: wins round 1
+PLAYER 1: Round ends
+PLAYER 3: lost round 1
+PLAYER 4: eats 4 chips
+BAG: 19 Chips left
+PLAYER 6: lost round 1
+PLAYER 5: lost round 1
+PLAYER 2: lost round 1
+PLAYER 2: shuffles deck for round 2
+PLAYER 2: greasy card is 3
+PLAYER 1: hand Q
+PLAYER 2: hand 10
+PLAYER 3: hand K
+PLAYER 4: hand 7
+PLAYER 5: hand 8
+PLAYER 6: hand A
+BAG: 30 chips
+PLAYER 3: hand K
+PLAYER 3: draws 3
+PLAYER 3: hand (K,3) <> Greasy card is 3
+PLAYER 3: wins round 2
+PLAYER 1: lost round 2
+PLAYER 3: eats 5 chips
+BAG: 25 Chips left
+PLAYER 2: Round ends
+PLAYER 5: lost round 2
+PLAYER 4: lost round 2
+PLAYER 6: lost round 2
+PLAYER 3: shuffles deck for round 3
+PLAYER 3: greasy card is Q
+PLAYER 1: hand 6
+PLAYER 2: hand 7
+PLAYER 3: hand 10
+PLAYER 4: hand A
+PLAYER 5: hand 7
+PLAYER 6: hand 3
+BAG: 30 chips
+PLAYER 4: hand A
+PLAYER 4: draws A
+PLAYER 4: discards A at random
+PLAYER 4: hand A
+DECK: 2 J K 6 6 10 6 Q 4 2 K 8 J A 3 2 7 8 8 J K Q 9 3 4 3 10 Q 5 5 K 7 9 5 5 4 8 9 10 J A 4 9 2 A
+PLAYER 4: eats 4 chips
+BAG: 26 Chips left
+PLAYER 5: hand 7
+PLAYER 5: draws 2
+PLAYER 5: discards 2 at random
+PLAYER 5: hand 7
+DECK: J K 6 6 10 6 Q 4 2 K 8 J A 3 2 7 8 8 J K Q 9 3 4 3 10 Q 5 5 K 7 9 5 5 4 8 9 10 J A 4 9 2 A 2
+PLAYER 5: eats 5 chips
+BAG: 21 Chips left
+PLAYER 6: hand 3
+PLAYER 6: draws J
+PLAYER 6: discards J at random
+PLAYER 6: hand 3
+DECK: K 6 6 10 6 Q 4 2 K 8 J A 3 2 7 8 8 J K Q 9 3 4 3 10 Q 5 5 K 7 9 5 5 4 8 9 10 J A 4 9 2 A 2 J
+PLAYER 1: hand 6
+PLAYER 1: draws K
+PLAYER 1: discards K at random
+PLAYER 1: hand 6
+DECK: 6 6 10 6 Q 4 2 K 8 J A 3 2 7 8 8 J K Q 9 3 4 3 10 Q 5 5 K 7 9 5 5 4 8 9 10 J A 4 9 2 A 2 J K
+PLAYER 6: eats 2 chips
+BAG: 19 Chips left
+PLAYER 2: hand 7
+PLAYER 2: draws 6
+PLAYER 2: discards 6 at random
+PLAYER 2: hand 7
+DECK: 6 10 6 Q 4 2 K 8 J A 3 2 7 8 8 J K Q 9 3 4 3 10 Q 5 5 K 7 9 5 5 4 8 9 10 J A 4 9 2 A 2 J K 6
+PLAYER 1: eats 2 chips
+PLAYER 4: hand A
+PLAYER 4: draws 6
+PLAYER 4: discards A at random
+PLAYER 4: hand 6
+DECK: 10 6 Q 4 2 K 8 J A 3 2 7 8 8 J K Q 9 3 4 3 10 Q 5 5 K 7 9 5 5 4 8 9 10 J A 4 9 2 A 2 J K 6 A
+BAG: 17 Chips left
+PLAYER 5: hand 7
+PLAYER 5: draws 10
+PLAYER 2: eats 4 chips
+BAG: 13 Chips left
+PLAYER 5: discards 10 at random
+PLAYER 5: hand 7
+DECK: 6 Q 4 2 K 8 J A 3 2 7 8 8 J K Q 9 3 4 3 10 Q 5 5 K 7 9 5 5 4 8 9 10 J A 4 9 2 A 2 J K 6 A 10
+PLAYER 4: eats 4 chips
+BAG: 9 Chips left
+PLAYER 6: hand 3
+PLAYER 6: draws 6
+PLAYER 6: discards 3 at random
+PLAYER 6: hand 6
+DECK: Q 4 2 K 8 J A 3 2 7 8 8 J K Q 9 3 4 3 10 Q 5 5 K 7 9 5 5 4 8 9 10 J A 4 9 2 A 2 J K 6 A 10 3
+PLAYER 5: eats 1 chips
+BAG: 8 Chips left
+PLAYER 1: hand 6
+PLAYER 1: draws Q
+PLAYER 1: hand (6,Q) <> Greasy card is Q
+PLAYER 1: wins round 3
+PLAYER 6: eats 4 chips
+BAG: 4 Chips left
+PLAYER 3: Round ends
+PLAYER 1: eats 2 chips
+BAG: 2 Chips left
+PLAYER 4: lost round 3
+PLAYER 5: lost round 3
+PLAYER 2: lost round 3
+PLAYER 6: lost round 3
+PLAYER 4: shuffles deck for round 4
+PLAYER 4: greasy card is 4
+PLAYER 1: hand A
+PLAYER 2: hand 3
+PLAYER 3: hand 10
+PLAYER 4: hand 10
+PLAYER 5: hand 9
+PLAYER 6: hand 5
+BAG: 30 chips
+PLAYER 5: hand 9
+PLAYER 5: draws 5
+PLAYER 5: discards 5 at random
+PLAYER 5: hand 9
+DECK: 5 A Q 6 2 3 5 2 9 9 6 8 Q 3 Q 6 J 9 8 4 8 4 7 J 7 7 2 2 J K 8 K J A 6 K 10 Q 3 K 7 A 4 10 5
+PLAYER 5: eats 1 chips
+BAG: 29 Chips left
+PLAYER 6: hand 5
+PLAYER 6: draws 5
+PLAYER 6: discards 5 at random
+PLAYER 6: hand 5
+DECK: A Q 6 2 3 5 2 9 9 6 8 Q 3 Q 6 J 9 8 4 8 4 7 J 7 7 2 2 J K 8 K J A 6 K 10 Q 3 K 7 A 4 10 5 5
+PLAYER 1: hand A
+PLAYER 1: draws A
+PLAYER 1: discards A at random
+PLAYER 1: hand A
+DECK: Q 6 2 3 5 2 9 9 6 8 Q 3 Q 6 J 9 8 4 8 4 7 J 7 7 2 2 J K 8 K J A 6 K 10 Q 3 K 7 A 4 10 5 5 A
+PLAYER 6: eats 5 chips
+BAG: 24 Chips left
+PLAYER 2: hand 3
+PLAYER 2: draws Q
+PLAYER 2: discards Q at random
+PLAYER 2: hand 3
+DECK: 6 2 3 5 2 9 9 6 8 Q 3 Q 6 J 9 8 4 8 4 7 J 7 7 2 2 J K 8 K J A 6 K 10 Q 3 K 7 A 4 10 5 5 A Q
+PLAYER 1: eats 5 chips
+BAG: 19 Chips left
+PLAYER 3: hand 10
+PLAYER 3: draws 6
+PLAYER 3: discards 10 at random
+PLAYER 3: hand 6
+DECK: 2 3 5 2 9 9 6 8 Q 3 Q 6 J 9 8 4 8 4 7 J 7 7 2 2 J K 8 K J A 6 K 10 Q 3 K 7 A 4 10 5 5 A Q 10
+PLAYER 2: eats 3 chips
+BAG: 16 Chips left
+PLAYER 5: hand 9
+PLAYER 5: draws 2
+PLAYER 5: discards 2 at random
+PLAYER 5: hand 9
+DECK: 3 5 2 9 9 6 8 Q 3 Q 6 J 9 8 4 8 4 7 J 7 7 2 2 J K 8 K J A 6 K 10 Q 3 K 7 A 4 10 5 5 A Q 10 2
+PLAYER 3: eats 3 chips
+BAG: 13 Chips left
+PLAYER 6: hand 5
+PLAYER 6: draws 3
+PLAYER 6: discards 3 at random
+PLAYER 6: hand 5
+DECK: 5 2 9 9 6 8 Q 3 Q 6 J 9 8 4 8 4 7 J 7 7 2 2 J K 8 K J A 6 K 10 Q 3 K 7 A 4 10 5 5 A Q 10 2 3
+PLAYER 5: eats 3 chips
+BAG: 10 Chips left
+PLAYER 1: hand A
+PLAYER 1: draws 5
+PLAYER 1: discards A at random
+PLAYER 1: hand 5
+DECK: 2 9 9 6 8 Q 3 Q 6 J 9 8 4 8 4 7 J 7 7 2 2 J K 8 K J A 6 K 10 Q 3 K 7 A 4 10 5 5 A Q 10 2 3 A
+PLAYER 6: eats 2 chips
+BAG: 8 Chips left
+PLAYER 2: hand 3
+PLAYER 2: draws 2
+PLAYER 2: discards 3 at random
+PLAYER 2: hand 2
+DECK: 9 9 6 8 Q 3 Q 6 J 9 8 4 8 4 7 J 7 7 2 2 J K 8 K J A 6 K 10 Q 3 K 7 A 4 10 5 5 A Q 10 2 3 A 3
+PLAYER 1: eats 5 chips
+BAG: 3 Chips left
+PLAYER 3: hand 6
+PLAYER 3: draws 9
+PLAYER 3: discards 9 at random
+PLAYER 3: hand 6
+DECK: 9 6 8 Q 3 Q 6 J 9 8 4 8 4 7 J 7 7 2 2 J K 8 K J A 6 K 10 Q 3 K 7 A 4 10 5 5 A Q 10 2 3 A 3 9
+PLAYER 2: eats 3 chips
+BAG: 0 Chips left
+PLAYER 5: hand 9
+PLAYER 5: draws 9
+PLAYER 5: discards 9 at random
+PLAYER 5: hand 9
+DECK: 6 8 Q 3 Q 6 J 9 8 4 8 4 7 J 7 7 2 2 J K 8 K J A 6 K 10 Q 3 K 7 A 4 10 5 5 A Q 10 2 3 A 3 9 9
+PLAYER 3: opens bag 2
+BAG: 30 chips
+PLAYER 3: eats 2 chips
+BAG: 28 Chips left
+PLAYER 6: hand 5
+PLAYER 6: draws 6
+PLAYER 6: discards 6 at random
+PLAYER 6: hand 5
+DECK: 8 Q 3 Q 6 J 9 8 4 8 4 7 J 7 7 2 2 J K 8 K J A 6 K 10 Q 3 K 7 A 4 10 5 5 A Q 10 2 3 A 3 9 9 6
+PLAYER 5: eats 5 chips
+BAG: 23 Chips left
+PLAYER 1: hand 5
+PLAYER 1: draws 8
+PLAYER 1: discards 5 at random
+PLAYER 1: hand 8
+DECK: Q 3 Q 6 J 9 8 4 8 4 7 J 7 7 2 2 J K 8 K J A 6 K 10 Q 3 K 7 A 4 10 5 5 A Q 10 2 3 A 3 9 9 6 5
+PLAYER 6: eats 4 chips
+BAG: 19 Chips left
+PLAYER 2: hand 2
+PLAYER 2: draws Q
+PLAYER 2: discards Q at random
+PLAYER 2: hand 2
+DECK: 3 Q 6 J 9 8 4 8 4 7 J 7 7 2 2 J K 8 K J A 6 K 10 Q 3 K 7 A 4 10 5 5 A Q 10 2 3 A 3 9 9 6 5 Q
+PLAYER 1: eats 3 chips
+BAG: 16 Chips left
+PLAYER 3: hand 6
+PLAYER 3: draws 3
+PLAYER 3: discards 6 at random
+PLAYER 3: hand 3
+DECK: Q 6 J 9 8 4 8 4 7 J 7 7 2 2 J K 8 K J A 6 K 10 Q 3 K 7 A 4 10 5 5 A Q 10 2 3 A 3 9 9 6 5 Q 6
+PLAYER 2: eats 4 chips
+BAG: 12 Chips left
+PLAYER 5: hand 9
+PLAYER 5: draws Q
+PLAYER 5: discards Q at random
+PLAYER 5: hand 9
+DECK: 6 J 9 8 4 8 4 7 J 7 7 2 2 J K 8 K J A 6 K 10 Q 3 K 7 A 4 10 5 5 A Q 10 2 3 A 3 9 9 6 5 Q 6 Q
+PLAYER 3: eats 3 chips
+BAG: 9 Chips left
+PLAYER 6: hand 5
+PLAYER 6: draws 6
+PLAYER 6: discards 6 at random
+PLAYER 6: hand 5
+DECK: J 9 8 4 8 4 7 J 7 7 2 2 J K 8 K J A 6 K 10 Q 3 K 7 A 4 10 5 5 A Q 10 2 3 A 3 9 9 6 5 Q 6 Q 6
+PLAYER 5: eats 1 chips
+BAG: 8 Chips left
+PLAYER 1: hand 8
+PLAYER 1: draws J
+PLAYER 6: eats 4 chips
+BAG: 4 Chips left
+PLAYER 1: discards J at random
+PLAYER 1: hand 8
+DECK: 9 8 4 8 4 7 J 7 7 2 2 J K 8 K J A 6 K 10 Q 3 K 7 A 4 10 5 5 A Q 10 2 3 A 3 9 9 6 5 Q 6 Q 6 J
+PLAYER 2: hand 2
+PLAYER 2: draws 9
+PLAYER 2: discards 2 at random
+PLAYER 2: hand 9
+DECK: 8 4 8 4 7 J 7 7 2 2 J K 8 K J A 6 K 10 Q 3 K 7 A 4 10 5 5 A Q 10 2 3 A 3 9 9 6 5 Q 6 Q 6 J 2
+PLAYER 1: eats 3 chips
+BAG: 1 Chips left
+PLAYER 3: hand 3
+PLAYER 3: draws 8
+PLAYER 3: discards 8 at random
+PLAYER 3: hand 3
+DECK: 4 8 4 7 J 7 7 2 2 J K 8 K J A 6 K 10 Q 3 K 7 A 4 10 5 5 A Q 10 2 3 A 3 9 9 6 5 Q 6 Q 6 J 2 8
+PLAYER 2: eats 1 chips
+BAG: 0 Chips left
+PLAYER 5: hand 9
+PLAYER 5: draws 4
+PLAYER 5: hand (9,4) <> Greasy card is 4
+PLAYER 5: wins round 4
+PLAYER 3: opens bag 3
+BAG: 30 chips
+PLAYER 3: eats 4 chips
+BAG: 26 Chips left
+PLAYER 4: Round ends
+PLAYER 5: eats 4 chips
+BAG: 22 Chips left
+PLAYER 1: lost round 4
+PLAYER 2: lost round 4
+PLAYER 6: lost round 4
+PLAYER 3: lost round 4
+PLAYER 5: shuffles deck for round 5
+PLAYER 5: greasy card is 3
+PLAYER 1: hand 5
+PLAYER 2: hand K
+PLAYER 3: hand A
+PLAYER 4: hand 3
+PLAYER 5: hand 7
+PLAYER 6: hand K
+BAG: 30 chips
+PLAYER 6: hand K
+PLAYER 6: draws J
+PLAYER 6: discards K at random
+PLAYER 6: hand J
+DECK: 2 Q 9 3 A 10 7 9 A 4 5 6 2 2 K 8 6 7 3 7 Q 8 4 10 2 A 4 5 9 J Q J J 10 9 8 K 6 10 Q 5 4 8 6 K
+PLAYER 6: eats 1 chips
+BAG: 29 Chips left
+PLAYER 1: hand 5
+PLAYER 1: draws 2
+PLAYER 1: discards 2 at random
+PLAYER 1: hand 5
+DECK: Q 9 3 A 10 7 9 A 4 5 6 2 2 K 8 6 7 3 7 Q 8 4 10 2 A 4 5 9 J Q J J 10 9 8 K 6 10 Q 5 4 8 6 K 2
+PLAYER 1: eats 1 chips
+BAG: 28 Chips left
+PLAYER 2: hand K
+PLAYER 2: draws Q
+PLAYER 2: discards K at random
+PLAYER 2: hand Q
+DECK: 9 3 A 10 7 9 A 4 5 6 2 2 K 8 6 7 3 7 Q 8 4 10 2 A 4 5 9 J Q J J 10 9 8 K 6 10 Q 5 4 8 6 K 2 K
+PLAYER 2: eats 1 chips
+BAG: 27 Chips left
+PLAYER 3: hand A
+PLAYER 3: draws 9
+PLAYER 3: discards A at random
+PLAYER 3: hand 9
+DECK: 3 A 10 7 9 A 4 5 6 2 2 K 8 6 7 3 7 Q 8 4 10 2 A 4 5 9 J Q J J 10 9 8 K 6 10 Q 5 4 8 6 K 2 K A
+PLAYER 4: hand 3
+PLAYER 4: draws 3
+PLAYER 4: hand (3,3) <> Greasy card is 3
+PLAYER 4: wins round 5
+PLAYER 3: eats 1 chips
+BAG: 26 Chips left
+PLAYER 5: Round ends
+PLAYER 4: eats 2 chips
+BAG: 24 Chips left
+PLAYER 2: lost round 5
+PLAYER 1: lost round 5
+PLAYER 6: lost round 5
+PLAYER 3: lost round 5
+PLAYER 6: shuffles deck for round 6
+PLAYER 6: greasy card is 7
+PLAYER 1: hand A
+PLAYER 2: hand 5
+PLAYER 3: hand 10
+PLAYER 4: hand 2
+PLAYER 5: hand 6
+PLAYER 6: hand 8
+BAG: 30 chips
+PLAYER 1: hand A
+PLAYER 1: draws 2
+PLAYER 1: discards 2 at random
+PLAYER 1: hand A
+DECK: 3 3 A 6 J 2 9 5 Q 6 10 6 Q 7 2 4 Q 7 J 8 9 5 10 K J J 8 K 4 9 9 3 Q 5 4 8 7 K A A K 3 4 10 2
+PLAYER 2: hand 5
+PLAYER 2: draws 3
+PLAYER 2: discards 3 at random
+PLAYER 2: hand 5
+DECK: 3 A 6 J 2 9 5 Q 6 10 6 Q 7 2 4 Q 7 J 8 9 5 10 K J J 8 K 4 9 9 3 Q 5 4 8 7 K A A K 3 4 10 2 3
+PLAYER 1: eats 3 chips
+BAG: 27 Chips left
+PLAYER 3: hand 10
+PLAYER 3: draws 3
+PLAYER 3: discards 3 at random
+PLAYER 3: hand 10
+DECK: A 6 J 2 9 5 Q 6 10 6 Q 7 2 4 Q 7 J 8 9 5 10 K J J 8 K 4 9 9 3 Q 5 4 8 7 K A A K 3 4 10 2 3 3
+PLAYER 2: eats 4 chips
+BAG: 23 Chips left
+PLAYER 4: hand 2
+PLAYER 4: draws A
+PLAYER 4: discards 2 at random
+PLAYER 4: hand A
+DECK: 6 J 2 9 5 Q 6 10 6 Q 7 2 4 Q 7 J 8 9 5 10 K J J 8 K 4 9 9 3 Q 5 4 8 7 K A A K 3 4 10 2 3 3 2
+PLAYER 3: eats 2 chips
+BAG: 21 Chips left
+PLAYER 5: hand 6
+PLAYER 5: draws 6
+PLAYER 5: discards 6 at random
+PLAYER 5: hand 6
+DECK: J 2 9 5 Q 6 10 6 Q 7 2 4 Q 7 J 8 9 5 10 K J J 8 K 4 9 9 3 Q 5 4 8 7 K A A K 3 4 10 2 3 3 2 6
+PLAYER 4: eats 2 chips
+BAG: 19 Chips left
+PLAYER 1: hand A
+PLAYER 1: draws J
+PLAYER 1: discards A at random
+PLAYER 1: hand J
+DECK: 2 9 5 Q 6 10 6 Q 7 2 4 Q 7 J 8 9 5 10 K J J 8 K 4 9 9 3 Q 5 4 8 7 K A A K 3 4 10 2 3 3 2 6 A
+PLAYER 5: eats 2 chips
+BAG: 17 Chips left
+PLAYER 2: hand 5
+PLAYER 2: draws 2
+PLAYER 2: discards 2 at random
+PLAYER 2: hand 5
+DECK: 9 5 Q 6 10 6 Q 7 2 4 Q 7 J 8 9 5 10 K J J 8 K 4 9 9 3 Q 5 4 8 7 K A A K 3 4 10 2 3 3 2 6 A 2
+PLAYER 1: eats 5 chips
+BAG: 12 Chips left
+PLAYER 3: hand 10
+PLAYER 3: draws 9
+PLAYER 3: discards 9 at random
+PLAYER 3: hand 10
+DECK: 5 Q 6 10 6 Q 7 2 4 Q 7 J 8 9 5 10 K J J 8 K 4 9 9 3 Q 5 4 8 7 K A A K 3 4 10 2 3 3 2 6 A 2 9
+PLAYER 2: eats 3 chips
+BAG: 9 Chips left
+PLAYER 4: hand A
+PLAYER 4: draws 5
+PLAYER 4: discards 5 at random
+PLAYER 4: hand A
+DECK: Q 6 10 6 Q 7 2 4 Q 7 J 8 9 5 10 K J J 8 K 4 9 9 3 Q 5 4 8 7 K A A K 3 4 10 2 3 3 2 6 A 2 9 5
+PLAYER 3: eats 2 chips
+BAG: 7 Chips left
+PLAYER 5: hand 6
+PLAYER 5: draws Q
+PLAYER 5: discards 6 at random
+PLAYER 5: hand Q
+DECK: 6 10 6 Q 7 2 4 Q 7 J 8 9 5 10 K J J 8 K 4 9 9 3 Q 5 4 8 7 K A A K 3 4 10 2 3 3 2 6 A 2 9 5 6
+PLAYER 4: eats 5 chips
+BAG: 2 Chips left
+PLAYER 1: hand J
+PLAYER 1: draws 6
+PLAYER 1: discards 6 at random
+PLAYER 1: hand J
+DECK: 10 6 Q 7 2 4 Q 7 J 8 9 5 10 K J J 8 K 4 9 9 3 Q 5 4 8 7 K A A K 3 4 10 2 3 3 2 6 A 2 9 5 6 6
+PLAYER 5: eats 2 chips
+BAG: 0 Chips left
+PLAYER 2: hand 5
+PLAYER 2: draws 10
+PLAYER 2: discards 5 at random
+PLAYER 2: hand 10
+DECK: 6 Q 7 2 4 Q 7 J 8 9 5 10 K J J 8 K 4 9 9 3 Q 5 4 8 7 K A A K 3 4 10 2 3 3 2 6 A 2 9 5 6 6 5
+PLAYER 1: opens bag 2
+BAG: 30 chips
+PLAYER 1: eats 5 chips
+BAG: 25 Chips left
+PLAYER 3: hand 10
+PLAYER 2: eats 1 chips
+BAG: 24 Chips left
+PLAYER 3: draws 6
+PLAYER 3: discards 10 at random
+PLAYER 3: hand 6
+DECK: Q 7 2 4 Q 7 J 8 9 5 10 K J J 8 K 4 9 9 3 Q 5 4 8 7 K A A K 3 4 10 2 3 3 2 6 A 2 9 5 6 6 5 10
+PLAYER 3: eats 1 chips
+BAG: 23 Chips left
+PLAYER 4: hand A
+PLAYER 4: draws Q
+PLAYER 4: discards Q at random
+PLAYER 4: hand A
+DECK: 7 2 4 Q 7 J 8 9 5 10 K J J 8 K 4 9 9 3 Q 5 4 8 7 K A A K 3 4 10 2 3 3 2 6 A 2 9 5 6 6 5 10 Q
+PLAYER 4: eats 5 chips
+BAG: 18 Chips left
+PLAYER 5: hand Q
+PLAYER 5: draws 7
+PLAYER 5: hand (Q,7) <> Greasy card is 7
+PLAYER 5: wins round 6
+PLAYER 6: Round ends
+PLAYER 5: eats 5 chips
+BAG: 13 Chips left
+PLAYER 2: lost round 6
+PLAYER 3: lost round 6
+PLAYER 4: lost round 6
+PLAYER 1: lost round 6`;
+
+// ══════════════════════════════════════════════════════════════════
+// CARD HELPERS
+// ══════════════════════════════════════════════════════════════════
+const NAME2VAL = {A:1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,J:11,Q:12,K:13};
+const SUITS = ['♠','♥','♦','♣'];
+const SUIT_COLORS = ['black','red','red','black'];
+
+function cardInfo(name) {
+  const v = NAME2VAL[name] || 0;
+  const si = v > 0 ? (v-1) % 4 : 0;
+  return { suit: SUITS[si], color: SUIT_COLORS[si] };
+}
+
+function cardHTML(name, extra='') {
+  if (!name) return '';
+  const {suit, color} = cardInfo(name);
+  return `<div class="card ${color} ${extra}"><span class="cv">${name}</span><span class="cs">${suit}</span><span class="cv2">${name}</span></div>`;
+}
+
+function miniCard(name, isGreasy=false) {
+  if (!name) return '';
+  const {color} = cardInfo(name);
+  return `<span class="mc ${color}${isGreasy?' glow':''}">${name}</span>`;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// LOG PARSER
+// ══════════════════════════════════════════════════════════════════
+function parseLine(line) {
+  let m;
+  if (m = line.match(/^PLAYER (\d+): shuffles deck for round (\d+)/))
+    return {type:'shuffle', p:+m[1], round:+m[2], raw:line};
+  if (m = line.match(/^PLAYER (\d+): greasy card is (\S+)/))
+    return {type:'greasy', p:+m[1], card:m[2], raw:line};
+  if (m = line.match(/^PLAYER (\d+): hand \(([^)]+)\) <> Greasy card is (\S+)/))
+    return {type:'hand_multi', p:+m[1], cards:m[2].split(','), greasy:m[3], raw:line};
+  if (m = line.match(/^PLAYER (\d+): hand (\S+)$/))
+    return {type:'hand_single', p:+m[1], card:m[2], raw:line};
+  if (m = line.match(/^PLAYER (\d+): draws (\S+)/))
+    return {type:'draw', p:+m[1], card:m[2], raw:line};
+  if (m = line.match(/^PLAYER (\d+): discards (\S+) at random/))
+    return {type:'discard', p:+m[1], card:m[2], raw:line};
+  if (m = line.match(/^PLAYER (\d+): eats (\d+) chips/))
+    return {type:'eat', p:+m[1], amt:+m[2], raw:line};
+  if (m = line.match(/^PLAYER (\d+): opens bag (\d+)/))
+    return {type:'open_bag', p:+m[1], bag:+m[2], raw:line};
+  if (m = line.match(/^PLAYER (\d+): wins round (\d+)/))
+    return {type:'win', p:+m[1], round:+m[2], raw:line};
+  if (m = line.match(/^PLAYER (\d+): lost round (\d+)/))
+    return {type:'lost', p:+m[1], round:+m[2], raw:line};
+  if (m = line.match(/^PLAYER (\d+): Round ends/))
+    return {type:'round_ends', p:+m[1], raw:line};
+  if (m = line.match(/^BAG: (\d+) chips$/))
+    return {type:'bag_reset', chips:+m[1], raw:line};
+  if (m = line.match(/^BAG: (\d+) Chips left/))
+    return {type:'bag_upd', chips:+m[1], raw:line};
+  if (m = line.match(/^DECK: (.+)/))
+    return {type:'deck_state', cards:m[1].split(' '), raw:line};
+  return {type:'unknown', raw:line};
+}
+
+const events = RAW_LOG.split('\n').map(l => l.trim()).filter(l => l).map(parseLine);
+
+// ══════════════════════════════════════════════════════════════════
+// STATE MACHINE
+// ══════════════════════════════════════════════════════════════════
+function clone(s) { return JSON.parse(JSON.stringify(s)); }
+
+function mkState() {
+  return {
+    round:0, dealer:0, greasyCard:null, currentTurn:0,
+    roundWinner:-1, roundOver:false, nPlayers:0,
+    dealing:false, dealCount:0, chipsPerBag:30,
+    deckTop:0, deckCount:52, deckVisible:[], deckKnown:[],
+    bag:{chips:0, bagNum:1, cpb:30},
+    players:[], // {id, hand, status}
+    msg:'', lastEvent:null, barrierCount:0,
+    threadStatus:[] // per player: 'waiting'|'running'|'sleeping'|'done'
+  };
+}
+
+// Detect n_players from initial deal in round 1
+let nPlayers = 0;
+let inDeal = false;
+for (const ev of events) {
+  if (ev.type === 'shuffle' && ev.round === 1) { inDeal = true; continue; }
+  if (inDeal && ev.type === 'hand_single') { nPlayers++; }
+  if (inDeal && ev.type === 'bag_reset') break;
+}
+
+const BASE = mkState();
+BASE.nPlayers = nPlayers;
+BASE.players = Array.from({length:nPlayers}, (_,i) => ({id:i+1,hand:[],status:'waiting'}));
+BASE.threadStatus = Array.from({length:nPlayers}, () => 'waiting');
+
+const states = [clone(BASE)];
+
+let cur = clone(BASE);
+
+for (let ei = 0; ei < events.length; ei++) {
+  const ev = events[ei];
+  const s = clone(cur);
+  s.lastEvent = ev;
+
+  const pi = ev.p ? ev.p - 1 : -1;
+
+  switch(ev.type) {
+    case 'shuffle':
+      s.round = ev.round;
+      s.dealer = ev.p;
+      s.dealing = true;
+      s.dealCount = 0;
+      s.roundWinner = -1;
+      s.roundOver = false;
+      s.currentTurn = 0;
+      s.barrierCount = 0;
+      s.deckTop = 0; s.deckCount = 52; s.deckVisible = []; s.deckKnown = [];
+      for (const p of s.players) { p.hand = []; p.status = p.id === ev.p ? 'dealer' : 'waiting'; }
+      s.threadStatus = s.players.map(p => p.id === ev.p ? 'running' : 'sleeping');
+      s.msg = `Round ${ev.round} begins — Player ${ev.p} shuffles the deck`;
+      break;
+
+    case 'greasy':
+      s.greasyCard = ev.card;
+      s.deckTop = (s.deckTop + 1) % 52;
+      s.deckCount--;
+      s.msg = `Greasy card revealed: ${ev.card} — players must match this card to win`;
+      break;
+
+    case 'hand_single':
+      if (s.dealing) {
+        s.players[pi].hand = [ev.card];
+        s.dealCount++;
+        s.deckTop = (s.deckTop + 1) % 52;
+        s.deckCount--;
+        s.msg = `Dealt ${ev.card} to Player ${ev.p}`;
+        if (s.dealCount === s.nPlayers) s.dealing = false;
+      } else {
+        s.players[pi].hand = [ev.card];
+        s.currentTurn = ev.p;
+        s.threadStatus[pi] = 'running';
+        s.msg = `Player ${ev.p}'s turn — hand: [${ev.card}]`;
+      }
+      break;
+
+    case 'draw':
+      s.players[pi].hand.push(ev.card);
+      s.currentTurn = ev.p;
+      s.deckTop = (s.deckTop + 1) % 52;
+      s.deckCount = Math.max(0, s.deckCount - 1);
+      s.msg = `Player ${ev.p} draws ${ev.card} — checking for match with greasy card ${s.greasyCard}`;
+      break;
+
+    case 'hand_multi':
+      s.players[pi].hand = ev.cards;
+      s.currentTurn = ev.p;
+      s.msg = `Player ${ev.p} holds [${ev.cards.join(', ')}] — greasy card is ${ev.greasy} ✓ MATCH!`;
+      break;
+
+    case 'discard': {
+      const idx = s.players[pi].hand.indexOf(ev.card);
+      if (idx !== -1) s.players[pi].hand.splice(idx, 1);
+      s.deckCount = Math.min(52, s.deckCount + 1);
+      s.msg = `Player ${ev.p} discards ${ev.card} — no match, returns card to bottom of deck`;
+      break;
+    }
+
+    case 'win':
+      s.roundWinner = ev.p;
+      s.roundOver = true;
+      s.players[pi].status = 'winner';
+      s.currentTurn = 0;
+      s.threadStatus[pi] = 'running';
+      s.msg = `🏆 Player ${ev.p} WINS round ${ev.round}!`;
+      break;
+
+    case 'lost':
+      s.players[pi].status = 'loser';
+      s.barrierCount++;
+      s.threadStatus[pi] = 'done';
+      s.msg = `Player ${ev.p} lost round ${ev.round}`;
+      break;
+
+    case 'round_ends':
+      s.msg = `Player ${ev.p} (dealer) signals round end — all threads heading to barrier`;
+      s.threadStatus[pi] = 'done';
+      break;
+
+    case 'bag_reset':
+      s.bag.chips = ev.chips;
+      s.bag.cpb = ev.chips;
+      s.chipsPerBag = ev.chips;
+      s.bag.bagNum = 1;
+      if (s.dealing) {
+        s.dealing = false;
+        s.msg = `Round setup complete — chip bag filled to ${ev.chips}`;
+      } else {
+        s.msg = `New round — chip bag reset to ${ev.chips} chips`;
+      }
+      break;
+
+    case 'bag_upd':
+      s.bag.chips = ev.chips;
+      s.msg = `Chip bag: ${ev.chips} chips remaining`;
+      break;
+
+    case 'open_bag':
+      s.bag.bagNum = ev.bag;
+      s.msg = `Player ${ev.p} opens a new chip bag (bag #${ev.bag})`;
+      break;
+
+    case 'eat':
+      s.msg = `Player ${ev.p} eats ${ev.amt} chip${ev.amt!==1?'s':''}`;
+      break;
+
+    case 'deck_state':
+      s.deckVisible = ev.cards;
+      s.deckCount = ev.cards.length;
+      s.msg = `Deck updated — ${ev.cards.length} cards remaining`;
+      break;
+  }
+
+  states.push(s);
+  cur = s;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CHART DATA COLLECTION
+// ══════════════════════════════════════════════════════════════════
+const PC = ['#58a6ff','#3fb950','#f97316','#c084fc','#e8c84a','#f85149'];
+
+const CD = {
+  bagChips: [], deckCount: [], handSizes: [],
+  cumWins:  [], cumChips:  [], cumTurns:  [],
+  roundTurns:   Array(nPlayers).fill(0),
+  roundWinners: Array(nPlayers).fill(0),
+  greasyCards:  Array(nPlayers).fill(''),
+  roundLabels:  Array.from({length:nPlayers}, (_,i) => `R${i+1}`)
+};
+
+{ // block scope for temp vars
+  let wins = Array(nPlayers).fill(0);
+  let chips = Array(nPlayers).fill(0);
+  let turns = Array(nPlayers).fill(0);
+  let curR = 0;
+  for (let i = 0; i < states.length; i++) {
+    const s = states[i];
+    const ev = s.lastEvent;
+    if (ev) {
+      if (ev.type === 'shuffle') curR = ev.round;
+      if (ev.type === 'greasy' && curR > 0)  CD.greasyCards[curR-1] = ev.card;
+      if (ev.type === 'win')   { wins[ev.p-1]++; CD.roundWinners[ev.round-1] = ev.p; }
+      if (ev.type === 'eat')   chips[ev.p-1] += ev.amt;
+      if (ev.type === 'draw')  { turns[ev.p-1]++; if (curR>0) CD.roundTurns[curR-1]++; }
+    }
+    CD.bagChips.push(s.bag.chips);
+    CD.deckCount.push(s.deckCount);
+    CD.handSizes.push(s.players.map(p => p.hand.length));
+    CD.cumWins.push([...wins]);
+    CD.cumChips.push([...chips]);
+    CD.cumTurns.push([...turns]);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CHART ENGINE
+// ══════════════════════════════════════════════════════════════════
+function cCtx(canvas) {
+  const p = canvas.parentElement;
+  const W = p.clientWidth  || 400;
+  const H = p.clientHeight || 260;
+  canvas.width  = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0d1117';
+  ctx.fillRect(0, 0, W, H);
+  return { ctx, W, H };
+}
+
+function cPad(W, H, t=42, r=18, b=44, l=52) {
+  return { x0:l, y0:t, x1:W-r, y1:H-b, w:W-l-r, h:H-t-b };
+}
+
+function cAxes(ctx, lay, {yMin=0, yMax=50, ticks=5, title='', sub=''}) {
+  const {x0,y0,x1,y1,w,h} = lay;
+  ctx.font = 'bold 13px Courier New';
+  ctx.fillStyle = '#e8c84a';
+  ctx.textAlign = 'center';
+  ctx.fillText(title, (x0+x1)/2, 18);
+  if (sub) { ctx.font='10px Courier New'; ctx.fillStyle='#8b949e'; ctx.fillText(sub,(x0+x1)/2,31); }
+  for (let i = 0; i <= ticks; i++) {
+    const f = i/ticks, y = y1 - f*h, v = yMin + f*(yMax-yMin);
+    ctx.strokeStyle='#21262d'; ctx.lineWidth=.5;
+    ctx.beginPath(); ctx.moveTo(x0,y); ctx.lineTo(x1,y); ctx.stroke();
+    ctx.fillStyle='#8b949e'; ctx.font='10px Courier New'; ctx.textAlign='right';
+    ctx.fillText(Math.round(v), x0-4, y+3);
+  }
+  ctx.strokeStyle='#30363d'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x0,y1); ctx.moveTo(x0,y1); ctx.lineTo(x1,y1); ctx.stroke();
+}
+
+function cLine(ctx, data, lay, {color, yMin=0, yMax=50, fill=false, width=2}) {
+  const {x0,y0,y1,w,h} = lay;
+  const n = data.length; if (!n) return;
+  const px = i => x0 + (i/Math.max(1,n-1))*w;
+  const py = v => y1 - ((Math.max(yMin,Math.min(yMax,v))-yMin)/(yMax-yMin))*h;
+  ctx.strokeStyle=color; ctx.lineWidth=width; ctx.lineJoin='round'; ctx.setLineDash([]);
+  ctx.beginPath();
+  data.forEach((v,i) => i===0 ? ctx.moveTo(px(i),py(v)) : ctx.lineTo(px(i),py(v)));
+  ctx.stroke();
+  if (fill) {
+    ctx.beginPath();
+    data.forEach((v,i) => i===0 ? ctx.moveTo(px(i),py(v)) : ctx.lineTo(px(i),py(v)));
+    ctx.lineTo(px(n-1),y1); ctx.lineTo(px(0),y1); ctx.closePath();
+    ctx.fillStyle = color+'22'; ctx.fill();
+  }
+}
+
+function cCursor(ctx, frac, lay) {
+  const x = lay.x0 + frac*lay.w;
+  ctx.strokeStyle='rgba(232,200,74,.55)'; ctx.lineWidth=1.5; ctx.setLineDash([4,3]);
+  ctx.beginPath(); ctx.moveTo(x,lay.y0); ctx.lineTo(x,lay.y1); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function cBars(ctx, lay, labels, datasets, {yMax, gap=7}) {
+  const {x0,y0,y1,w,h} = lay;
+  const nG = labels.length, nD = datasets.length;
+  const gW = w/nG;
+  const bW = Math.max(3, (gW-gap*2-(nD-1)*2)/nD);
+  for (let gi=0; gi<nG; gi++) {
+    const gx = x0 + gi*gW + gap;
+    for (let di=0; di<nD; di++) {
+      const v = datasets[di].data[gi]||0;
+      const bx = gx + di*(bW+2), bh = (v/yMax)*h;
+      ctx.fillStyle = datasets[di].color;
+      ctx.fillRect(bx, y1-bh, bW, bh);
+      if (v>0) { ctx.fillStyle='#c9d1d9'; ctx.font='9px Courier New'; ctx.textAlign='center'; ctx.fillText(v,bx+bW/2,y1-bh-3); }
+    }
+    ctx.fillStyle='#8b949e'; ctx.font='11px Courier New'; ctx.textAlign='center';
+    ctx.fillText(labels[gi], x0+(gi+.5)*gW, y1+14);
+  }
+}
+
+function cLegend(ctx, W, H, items) {
+  let lx=55, ly=H-8;
+  ctx.font='10px Courier New'; ctx.textAlign='left';
+  for (const {label,color} of items) {
+    if (lx+ctx.measureText(label).width+40 > W-10) { lx=55; ly-=14; }
+    ctx.fillStyle=color; ctx.fillRect(lx,ly-8,12,8);
+    ctx.fillStyle='#8b949e'; ctx.fillText(label,lx+15,ly);
+    lx += ctx.measureText(label).width+32;
+  }
+}
+
+// ── individual charts ──
+function drawChipBag(step) {
+  const {ctx,W,H} = cCtx(document.getElementById('ch-bag'));
+  const lay = cPad(W,H,42,12,38,52);
+  const cpb = states[states.length-1].chipsPerBag||30;
+  cAxes(ctx,lay,{yMax:cpb,title:'Chip Bag Level',sub:'chips remaining over every event step'});
+  cLine(ctx,CD.bagChips,lay,{color:'#e8c84a33',yMax:cpb,fill:false,width:1});
+  cLine(ctx,CD.bagChips.slice(0,step+1),lay,{color:'#e8c84a',yMax:cpb,fill:true,width:2});
+  for (let i=1; i<=Math.min(step,states.length-1); i++) {
+    const ev = states[i].lastEvent;
+    if (!ev) continue;
+    const fx = lay.x0+(i/(CD.bagChips.length-1||1))*lay.w;
+    if (ev.type==='bag_reset') {
+      ctx.strokeStyle='#3fb95066'; ctx.lineWidth=1; ctx.setLineDash([2,2]);
+      ctx.beginPath(); ctx.moveTo(fx,lay.y0); ctx.lineTo(fx,lay.y1); ctx.stroke(); ctx.setLineDash([]);
+    } else if (ev.type==='open_bag') {
+      ctx.strokeStyle='#f8514988'; ctx.lineWidth=1; ctx.setLineDash([2,2]);
+      ctx.beginPath(); ctx.moveTo(fx,lay.y0); ctx.lineTo(fx,lay.y1); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle='#f85149'; ctx.font='8px Courier New'; ctx.textAlign='center';
+      ctx.fillText(`bag${ev.bag}`,fx,lay.y0+10);
+    }
+  }
+  cCursor(ctx, step/(CD.bagChips.length-1||1), lay);
+  cLegend(ctx,W,H,[{label:'Chips remaining',color:'#e8c84a'},{label:'Round reset',color:'#3fb950'},{label:'New bag',color:'#f85149'},{label:'Current step',color:'rgba(232,200,74,.55)'}]);
+}
+
+function drawDeck(step) {
+  const {ctx,W,H} = cCtx(document.getElementById('ch-deck'));
+  const lay = cPad(W,H,42,12,38,52);
+  cAxes(ctx,lay,{yMax:52,title:'Deck Size Over Time',sub:'cards remaining in circular buffer'});
+  cLine(ctx,CD.deckCount,lay,{color:'#58a6ff33',yMax:52,width:1});
+  cLine(ctx,CD.deckCount.slice(0,step+1),lay,{color:'#58a6ff',yMax:52,fill:true,width:2});
+  for (let i=1; i<=Math.min(step,states.length-1); i++) {
+    const ev = states[i].lastEvent;
+    if (ev && ev.type==='shuffle') {
+      const fx = lay.x0+(i/(CD.deckCount.length-1||1))*lay.w;
+      ctx.strokeStyle='#e8c84a55'; ctx.lineWidth=1; ctx.setLineDash([2,2]);
+      ctx.beginPath(); ctx.moveTo(fx,lay.y0); ctx.lineTo(fx,lay.y1); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle='#e8c84a'; ctx.font='8px Courier New'; ctx.textAlign='center';
+      ctx.fillText(`R${ev.round}`,fx,lay.y0+10);
+    }
+  }
+  cCursor(ctx, step/(CD.deckCount.length-1||1), lay);
+  cLegend(ctx,W,H,[{label:'Cards remaining',color:'#58a6ff'},{label:'Shuffle (round start)',color:'#e8c84a'}]);
+}
+
+function drawWins(step) {
+  const {ctx,W,H} = cCtx(document.getElementById('ch-wins'));
+  const lay = cPad(W,H,38,10,34,44);
+  const data = CD.cumWins[Math.min(step,CD.cumWins.length-1)]||Array(nPlayers).fill(0);
+  cAxes(ctx,lay,{yMax:nPlayers,ticks:nPlayers,title:'Wins Per Player'});
+  cBars(ctx,lay,Array.from({length:nPlayers},(_,i)=>`P${i+1}`),[{data,color:''}],{yMax:nPlayers,gap:10});
+  // coloured bars
+  const gW = lay.w/nPlayers;
+  for (let i=0; i<nPlayers; i++) {
+    const v=data[i]||0, bx=lay.x0+i*gW+8, bW=gW-16, bh=(v/nPlayers)*lay.h;
+    ctx.fillStyle=PC[i]; ctx.fillRect(bx,lay.y1-bh,bW,bh);
+    if(v>0){ctx.fillStyle='#fff';ctx.font='bold 10px Courier New';ctx.textAlign='center';ctx.fillText(v,bx+bW/2,lay.y1-bh-3);}
+    ctx.fillStyle='#8b949e';ctx.font='11px Courier New';ctx.textAlign='center';ctx.fillText(`P${i+1}`,lay.x0+(i+.5)*gW,lay.y1+14);
+  }
+  cLegend(ctx,W,H,Array.from({length:nPlayers},(_,i)=>({label:`P${i+1}`,color:PC[i]})));
+}
+
+function drawChipsEaten(step) {
+  const {ctx,W,H} = cCtx(document.getElementById('ch-cpeat'));
+  const lay = cPad(W,H,38,10,34,44);
+  const data = CD.cumChips[Math.min(step,CD.cumChips.length-1)]||Array(nPlayers).fill(0);
+  const yMax = Math.max(10,...data);
+  cAxes(ctx,lay,{yMax,title:'Chips Eaten'});
+  const gW = lay.w/nPlayers;
+  for (let i=0; i<nPlayers; i++) {
+    const v=data[i]||0, bx=lay.x0+i*gW+8, bW=gW-16, bh=(v/yMax)*lay.h;
+    ctx.fillStyle=PC[i]; ctx.fillRect(bx,lay.y1-bh,bW,bh);
+    if(v>0){ctx.fillStyle='#fff';ctx.font='10px Courier New';ctx.textAlign='center';ctx.fillText(v,bx+bW/2,lay.y1-bh-3);}
+    ctx.fillStyle='#8b949e';ctx.font='11px Courier New';ctx.textAlign='center';ctx.fillText(`P${i+1}`,lay.x0+(i+.5)*gW,lay.y1+14);
+  }
+  cLegend(ctx,W,H,Array.from({length:nPlayers},(_,i)=>({label:`P${i+1}`,color:PC[i]})));
+}
+
+function drawTurns(step) {
+  const {ctx,W,H} = cCtx(document.getElementById('ch-turns'));
+  const lay = cPad(W,H,38,10,34,44);
+  const data = CD.cumTurns[Math.min(step,CD.cumTurns.length-1)]||Array(nPlayers).fill(0);
+  const yMax = Math.max(5,...data);
+  cAxes(ctx,lay,{yMax,title:'Turns Taken (draws)'});
+  const gW = lay.w/nPlayers;
+  for (let i=0; i<nPlayers; i++) {
+    const v=data[i]||0, bx=lay.x0+i*gW+8, bW=gW-16, bh=(v/yMax)*lay.h;
+    ctx.fillStyle=PC[i]; ctx.fillRect(bx,lay.y1-bh,bW,bh);
+    if(v>0){ctx.fillStyle='#fff';ctx.font='10px Courier New';ctx.textAlign='center';ctx.fillText(v,bx+bW/2,lay.y1-bh-3);}
+    ctx.fillStyle='#8b949e';ctx.font='11px Courier New';ctx.textAlign='center';ctx.fillText(`P${i+1}`,lay.x0+(i+.5)*gW,lay.y1+14);
+  }
+  cLegend(ctx,W,H,Array.from({length:nPlayers},(_,i)=>({label:`P${i+1}`,color:PC[i]})));
+}
+
+function drawHandSizes(step) {
+  const {ctx,W,H} = cCtx(document.getElementById('ch-hands'));
+  const lay = cPad(W,H,38,12,38,52);
+  cAxes(ctx,lay,{yMax:3,ticks:3,title:'Hand Sizes Over Time',sub:'cards held by each player at each step'});
+  for (let pi=0; pi<nPlayers; pi++) {
+    const data = CD.handSizes.slice(0,step+1).map(hs=>hs[pi]);
+    cLine(ctx,data,lay,{color:PC[pi],yMax:3,width:1.5});
+  }
+  cCursor(ctx, step/(CD.handSizes.length-1||1), lay);
+  cLegend(ctx,W,H,Array.from({length:nPlayers},(_,i)=>({label:`P${i+1}`,color:PC[i]})));
+}
+
+function drawRounds() {
+  const {ctx,W,H} = cCtx(document.getElementById('ch-rounds'));
+  const lay = cPad(W,H,42,12,56,52);
+  const n = CD.roundLabels.length;
+  const yMax = Math.max(5,...CD.roundTurns);
+  cAxes(ctx,lay,{yMax,title:'Turns Per Round',sub:'bar color = winning player · label shows winner and greasy card'});
+  const gW = lay.w/n;
+  for (let i=0; i<n; i++) {
+    const v=CD.roundTurns[i]||0, w2=CD.roundWinners[i];
+    const bx=lay.x0+i*gW+8, bW=gW-16, bh=(v/yMax)*lay.h;
+    ctx.fillStyle = w2>0 ? PC[w2-1] : '#30363d';
+    ctx.fillRect(bx,lay.y1-bh,bW,bh);
+    if(v>0){ctx.fillStyle='#fff';ctx.font='bold 10px Courier New';ctx.textAlign='center';ctx.fillText(v,bx+bW/2,lay.y1-bh-3);}
+    ctx.fillStyle='#8b949e';ctx.font='11px Courier New';ctx.textAlign='center';
+    ctx.fillText(CD.roundLabels[i],lay.x0+(i+.5)*gW,lay.y1+13);
+    if(w2>0){ctx.fillStyle=PC[w2-1];ctx.font='10px Courier New';ctx.fillText(`P${w2}`,lay.x0+(i+.5)*gW,lay.y1+26);}
+    if(CD.greasyCards[i]){ctx.fillStyle='#e8c84a';ctx.font='9px Courier New';ctx.fillText(`★${CD.greasyCards[i]}`,lay.x0+(i+.5)*gW,lay.y1+39);}
+  }
+  cLegend(ctx,W,H,Array.from({length:nPlayers},(_,i)=>({label:`P${i+1} won`,color:PC[i]})));
+}
+
+function updateCharts() {
+  const t = activeTab;
+  if (t==='chips')   drawChipBag(currentIdx);
+  else if (t==='deck')    drawDeck(currentIdx);
+  else if (t==='players') { drawWins(currentIdx); drawChipsEaten(currentIdx); drawTurns(currentIdx); drawHandSizes(currentIdx); }
+  else if (t==='rounds')  drawRounds();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// TAB SYSTEM
+// ══════════════════════════════════════════════════════════════════
+let activeTab = 'table';
+
+function setTab(name) {
+  activeTab = name;
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('tp-active'));
+  document.getElementById(`panel-${name}`).classList.add('tp-active');
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab===name));
+  if (name === 'table') {
+    positionSeats();
+  } else {
+    // small delay so the panel has rendered dimensions
+    requestAnimationFrame(updateCharts);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// PLAYER SEAT LAYOUT  (calc-based — always relative to board center)
+// ══════════════════════════════════════════════════════════════════
+// Table is 420×275. Seats orbit at ax=270, ay=200 from its center.
+// Using calc(50% + Xpx) means positions are always relative to #board
+// center regardless of board pixel size — no getBoundingClientRect needed.
+const SEAT_AX = 270, SEAT_AY = 200;
+
+function positionSeats() {
+  for (let i = 0; i < nPlayers; i++) {
+    const angle = Math.PI/2 - (2*Math.PI/nPlayers)*i;
+    const dx = Math.round(SEAT_AX * Math.cos(angle));
+    const dy = Math.round(SEAT_AY * Math.sin(angle));
+    seatEls[i].style.left = `calc(50% + ${dx}px)`;
+    seatEls[i].style.top  = `calc(50% + ${dy}px)`;
+  }
+}
+
+// Create seat elements
+const board = document.getElementById('board');
+const seatEls = [];
+for (let i = 0; i < nPlayers; i++) {
+  const el = document.createElement('div');
+  el.className = 'seat';
+  el.id = `seat-${i+1}`;
+  el.innerHTML = `<div class="sname" id="sn-${i+1}">P${i+1}</div><div class="shand" id="sh-${i+1}"></div>`;
+  board.appendChild(el);
+  seatEls.push(el);
+}
+positionSeats();
+window.addEventListener('resize', positionSeats);
+
+// Build event log
+const elogEl = document.getElementById('elog');
+const EV_CLASSES = {
+  shuffle:'ev-sh', greasy:'ev-gr', hand_single:'ev-ha', hand_multi:'ev-ha',
+  draw:'ev-dr', discard:'ev-di', win:'ev-wi', lost:'ev-lo',
+  eat:'ev-ch', open_bag:'ev-ba', bag_reset:'ev-ba', bag_upd:'ev-ba',
+  round_ends:'ev-re', deck_state:'ev-dk'
+};
+
+events.forEach((ev, i) => {
+  const div = document.createElement('div');
+  div.className = `ev ${EV_CLASSES[ev.type] || ''}`;
+  div.id = `ev-${i}`;
+  div.textContent = ev.raw;
+  div.onclick = () => goTo(i + 1);
+  elogEl.appendChild(div);
+});
+
+// Build deck buffer row
+const dbufRow = document.getElementById('dbuf-row');
+const dcells = [];
+for (let i = 0; i < 52; i++) {
+  const c = document.createElement('div');
+  c.className = 'dc';
+  c.id = `dc-${i}`;
+  c.title = `cards[${i}]`;
+  dbufRow.appendChild(c);
+  dcells.push(c);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RENDERER
+// ══════════════════════════════════════════════════════════════════
+let currentIdx = 0;
+
+function render(idx) {
+  const s = states[idx];
+  if (!s) return;
+
+  // Header badges
+  document.getElementById('b-r').textContent = s.round || '–';
+  document.getElementById('b-g').textContent = s.greasyCard || '–';
+  document.getElementById('b-t').textContent = s.currentTurn ? `P${s.currentTurn}` : '–';
+  document.getElementById('b-d').textContent = s.dealer ? `P${s.dealer}` : '–';
+
+  // Greasy card in table center
+  if (s.greasyCard) {
+    const {suit, color} = cardInfo(s.greasyCard);
+    document.getElementById('gc').className = color;
+    document.getElementById('gc-v').textContent  = s.greasyCard;
+    document.getElementById('gc-s').textContent  = suit;
+    document.getElementById('gc-v2').textContent = s.greasyCard;
+    document.getElementById('gc').style.color = color === 'red' ? 'var(--card-red)' : '#111';
+  } else {
+    document.getElementById('gc-v').textContent  = '?';
+    document.getElementById('gc-s').textContent  = '★';
+    document.getElementById('gc-v2').textContent = '?';
+    document.getElementById('gc').style.color = '#555';
+  }
+
+  // Deck count
+  document.getElementById('dc-lbl').textContent = `${s.deckCount} cards`;
+
+  // Chip bag
+  document.getElementById('b-chips').textContent = s.bag.chips;
+  document.getElementById('b-bagn').textContent  = `Bag #${s.bag.bagNum}`;
+
+  // Left panel — Deck struct
+  document.getElementById('fv-top').textContent   = s.deckTop;
+  document.getElementById('fv-count').textContent = s.deckCount;
+
+  // Left panel — ChipBag struct
+  document.getElementById('fv-chips').textContent = s.bag.chips;
+  document.getElementById('fv-bn').textContent    = s.bag.bagNum;
+  document.getElementById('fv-cpb').textContent   = s.chipsPerBag || 30;
+
+  // Left panel — Global state
+  document.getElementById('fv-cr').textContent = s.round;
+  document.getElementById('fv-ct').textContent = s.currentTurn || 0;
+  document.getElementById('fv-dl').textContent = s.dealer || 0;
+  document.getElementById('fv-gc').textContent = s.greasyCard || '–';
+  document.getElementById('fv-rw').textContent = s.roundWinner;
+  document.getElementById('fv-ro').textContent = s.roundOver ? 1 : 0;
+  document.getElementById('fv-np').textContent = s.nPlayers;
+  document.getElementById('fv-bc').textContent = s.barrierCount;
+
+  // Player list (left panel)
+  const plistEl = document.getElementById('plist');
+  plistEl.innerHTML = s.players.map(p => {
+    const hand = p.hand.map(c => miniCard(c, c === s.greasyCard)).join('');
+    let badge = '';
+    if (p.status==='dealer')  badge = '<span class="ps ps-d">DEALER</span>';
+    if (p.id===s.currentTurn) badge = '<span class="ps ps-a">TURN</span>';
+    if (p.status==='winner')  badge = '<span class="ps ps-w">WON</span>';
+    if (p.status==='loser')   badge = '<span class="ps ps-l">LOST</span>';
+    return `<div class="prow"><span class="pid">P${p.id}</span><div class="ph">${hand || '–'}</div>${badge}</div>`;
+  }).join('');
+
+  // Thread status panel
+  const tlistEl = document.getElementById('tlist');
+  tlistEl.innerHTML = s.players.map((p, i) => {
+    const ts = s.threadStatus[i] || 'waiting';
+    const col = ts==='running'?'var(--win)':ts==='sleeping'?'#58a6ff':ts==='done'?'var(--lose)':'var(--dim)';
+    const sym = ts==='running'?'▶':ts==='sleeping'?'⏸':ts==='done'?'✓':'○';
+    return `<div class="frow"><span class="fk">thread[${p.id}]</span><span class="fv" style="color:${col}">${sym} ${ts}</span></div>`;
+  }).join('');
+
+  // Player seats (center board)
+  s.players.forEach((p, i) => {
+    const seat = document.getElementById(`seat-${p.id}`);
+    const nameEl = document.getElementById(`sn-${p.id}`);
+    const handEl = document.getElementById(`sh-${p.id}`);
+
+    seat.className = 'seat';
+    if (p.status === 'dealer')    seat.classList.add('sd');
+    if (p.id === s.currentTurn)  seat.classList.add('sa');
+    if (p.status === 'winner')    seat.classList.add('sw');
+    if (p.status === 'loser')     seat.classList.add('sl2');
+
+    let label = `P${p.id}`;
+    if (p.status === 'dealer')   label += ' (D)';
+    if (p.id === s.currentTurn)  label += ' ←';
+    nameEl.textContent = label;
+
+    handEl.innerHTML = p.hand.map(c => cardHTML(c, c === s.greasyCard ? 'gcard' : '')).join('');
+  });
+
+  // Deck circular buffer visualization
+  const vis = s.deckVisible;
+  const count = s.deckCount;
+  const top = s.deckTop;
+  for (let i = 0; i < 52; i++) {
+    const cell = dcells[i];
+    const slotInBuffer = (i - top + 52) % 52;
+    if (slotInBuffer < count) {
+      cell.className = 'dc act' + (i === top ? ' tp' : '');
+      const cardVal = vis[slotInBuffer] || '';
+      cell.textContent = cardVal;
+      cell.title = `cards[${i}] = ${cardVal || '?'}`;
+    } else {
+      cell.className = 'dc emp';
+      cell.textContent = '';
+      cell.title = `cards[${i}] — drawn`;
+    }
+  }
+  document.getElementById('dstat').textContent =
+    `top:${top} | count:${count} | tail:${(top+count)%52}`;
+
+  // Message
+  document.getElementById('msg').textContent = s.msg || '';
+
+  // Event log highlight
+  document.querySelectorAll('.ev.cur').forEach(e => e.classList.remove('cur'));
+  if (idx > 0) {
+    const el = document.getElementById(`ev-${idx-1}`);
+    if (el) {
+      el.classList.add('cur');
+      el.scrollIntoView({block:'nearest', behavior:'smooth'});
+    }
+  }
+
+  // Progress
+  const pct = states.length > 1 ? (idx / (states.length-1)) * 100 : 0;
+  document.getElementById('pf').style.width = pct + '%';
+  document.getElementById('pl').textContent = `Step ${idx} of ${states.length-1}`;
+  document.getElementById('sc').textContent = `${idx} / ${states.length-1}`;
+
+  // Button states
+  document.getElementById('bn-first').disabled = idx === 0;
+  document.getElementById('bn-prev').disabled  = idx === 0;
+  document.getElementById('bn-next').disabled  = idx === states.length-1;
+  document.getElementById('bn-last').disabled  = idx === states.length-1;
+
+  // Update active chart
+  if (activeTab !== 'table') updateCharts();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CONTROLS
+// ══════════════════════════════════════════════════════════════════
+let playing = false;
+let playTimer = null;
+
+function goTo(idx) {
+  currentIdx = Math.max(0, Math.min(idx, states.length-1));
+  render(currentIdx);
+}
+
+function step(dir) {
+  goTo(currentIdx + dir);
+}
+
+function togglePlay() {
+  playing = !playing;
+  const btn = document.getElementById('bn-play');
+  if (playing) {
+    btn.textContent = '⏸ Pause';
+    btn.style.background = '#3a1a00';
+    btn.style.borderColor = '#f97316';
+    btn.style.color = '#f97316';
+    playNext();
+  } else {
+    btn.textContent = '▶ Play';
+    btn.style.background = '';
+    btn.style.borderColor = '';
+    btn.style.color = '';
+    clearTimeout(playTimer);
+  }
+}
+
+function playNext() {
+  if (!playing) return;
+  if (currentIdx >= states.length - 1) { togglePlay(); return; }
+  step(1);
+  const spd = +document.getElementById('speed').value;
+  const delay = Math.round(1200 / spd);
+  playTimer = setTimeout(playNext, delay);
+}
+
+function clickProg(e) {
+  const rect = document.getElementById('pt').getBoundingClientRect();
+  const frac = (e.clientX - rect.left) / rect.width;
+  goTo(Math.round(frac * (states.length-1)));
+}
+
+// keyboard
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown')  step(1);
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')    step(-1);
+  if (e.key === ' ') { e.preventDefault(); togglePlay(); }
+  if (e.key === 'Home') goTo(0);
+  if (e.key === 'End')  goTo(states.length-1);
+});
+
+// Initial render
+goTo(0);
+</script>
+</body>
+</html>
