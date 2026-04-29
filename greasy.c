@@ -356,6 +356,7 @@ void do_dealer(Player *me, int round) {                                         
     /* 1. Shuffle the deck */
     shuffle_deck(&deck);                                                                    // refill and randomize the deck for a fresh round
     log_write("PLAYER %d: shuffles deck for round %d\n", me->id, round);                  // log the shuffle event
+    log_deck();                                                                             // log the full shuffled order before any cards are drawn
 
     /* 2. Draw the Greasy Card */
     greasy_card = deck_draw(&deck);                                                         // remove the top card from the deck and make it this round's target

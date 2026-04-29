@@ -622,6 +622,7 @@ function simulate(seed, np, cpb) {
 
     shuffle();
     lines.push(`PLAYER ${dealer}: shuffles deck for round ${round}`);
+    lines.push(`DECK: ${deckStr()}`);
 
     const greasy = draw();
     lines.push(`PLAYER ${dealer}: greasy card is ${cn(greasy)}`);
@@ -835,11 +836,15 @@ function buildSimulation(rawLog) {
   BASE.threadStatus = Array.from({length:nPlayers}, () => 'waiting');
   states = [clone(BASE)];
   let cur = clone(BASE);
+  const drawVisibleTop = s => {
+    if (s.deckVisible.length) s.deckVisible.shift();
+  };
 
   for (let ei = 0; ei < events.length; ei++) {
     const ev = events[ei];
     const s = clone(cur);
     const prevEv = cur.lastEvent;
+    const nextEv = events[ei + 1];
     s.lastEvent = ev;
     s.locks = locksForEvent(ev);
     const pi = ev.p ? ev.p - 1 : -1;
@@ -849,6 +854,10 @@ function buildSimulation(rawLog) {
         s.round = ev.round; s.dealer = ev.p; s.dealing = true; s.dealCount = 0;
         s.roundWinner = -1; s.roundOver = false; s.currentTurn = 0; s.barrierCount = 0;
         s.deckTop = 0; s.deckCount = 52; s.deckVisible = []; s.deckKnown = [];
+        if (nextEv?.type === 'deck_state') {
+          s.deckVisible = nextEv.cards;
+          s.deckCount = nextEv.cards.length;
+        }
         s.bag.holder = ev.p; s.bag.roundChips = 0;
         for (const p of s.players) { p.hand = []; p.status = p.id === ev.p ? 'dealer' : 'waiting'; }
         s.threadStatus = s.players.map(p => p.id === ev.p ? 'running' : 'sleeping');
@@ -858,6 +867,7 @@ function buildSimulation(rawLog) {
       case 'greasy':
         s.greasyCard = ev.card;
         s.deckTop = (s.deckTop + 1) % 52; s.deckCount--;
+        drawVisibleTop(s);
         s.msg = `Greasy card revealed: ${ev.card} — players must match this card to win`;
         break;
 
@@ -865,6 +875,7 @@ function buildSimulation(rawLog) {
         if (s.dealing) {
           s.players[pi].hand = [ev.card]; s.dealCount++;
           s.deckTop = (s.deckTop + 1) % 52; s.deckCount--;
+          drawVisibleTop(s);
           s.msg = `Dealt ${ev.card} to Player ${ev.p}`;
           if (s.dealCount === s.nPlayers - 1) s.dealing = false;
         } else {
@@ -878,6 +889,7 @@ function buildSimulation(rawLog) {
         s.players[pi].hand.push(ev.card); s.currentTurn = ev.p;
         s.deckTop = (s.deckTop + 1) % 52;
         s.deckCount = Math.max(0, s.deckCount - 1);
+        drawVisibleTop(s);
         s.msg = `Player ${ev.p} draws ${ev.card} — checking for match with greasy card ${s.greasyCard}`;
         break;
 
@@ -890,6 +902,7 @@ function buildSimulation(rawLog) {
         const idx = s.players[pi].hand.indexOf(ev.card);
         if (idx !== -1) s.players[pi].hand.splice(idx, 1);
         s.deckCount = Math.min(52, s.deckCount + 1);
+        if (s.deckVisible.length) s.deckVisible.push(ev.card);
         s.msg = `Player ${ev.p} discards ${ev.card} — no match, returns card to bottom of deck`;
         break;
       }
@@ -1360,7 +1373,7 @@ function drawMutexLines(s) {
     const lane = i * 12;
     const offset = (i - (active.length - 1) / 2) * 10;
     const sx = start.x;
-    const sy = start.y - lane;
+    const sy = start.y;
     const edgeX = side + (side < W / 2 ? lane : -lane);
     const sideY = Math.max(20, Math.min(H - 34, end.y + offset));
     const keyLift = Math.max(18, sy - 38);
