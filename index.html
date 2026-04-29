@@ -92,10 +92,35 @@ body { background:var(--bg); color:var(--text); font-family:'Courier New',monosp
 .chart-panel { background:#0a0e14; padding:8px; gap:8px; }
 .chart-panel.tp-active { display:flex; flex-direction:column; }
 #panel-players.tp-active { display:grid; grid-template-rows:1fr 1fr; gap:8px; }
+#panel-deck.tp-active { display:grid; grid-template-rows:auto 1fr auto; gap:8px; }
+#panel-rounds.tp-active { display:grid; grid-template-rows:1fr auto; gap:8px; }
 .ptop { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; min-height:0; }
 .cwrap { position:relative; background:#0d1117; border-radius:4px;
   border:1px solid var(--border); min-height:0; overflow:hidden; }
 .cwrap canvas { display:block; }
+.deck-stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+.deck-stat { background:#0d1117; border:1px solid var(--border); border-radius:4px;
+  padding:7px 9px; min-width:0; }
+.deck-stat .dk { display:block; color:var(--dim); font-size:10px; text-transform:uppercase; letter-spacing:1px; }
+.deck-stat .dv { display:block; color:var(--accent); font-size:17px; font-weight:bold; margin-top:2px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.deck-snapshot { background:#0d1117; border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+.deck-snap-head { display:flex; justify-content:space-between; gap:12px; padding:5px 8px;
+  border-bottom:1px solid var(--border); color:var(--dim); font-size:10px; text-transform:uppercase; letter-spacing:1px; }
+#deck-snapshot-row { display:flex; gap:2px; overflow-x:auto; padding:7px 8px; min-height:42px; }
+.deck-snap-card { width:24px; height:31px; border-radius:3px; border:1px solid #3b4450;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  font-size:10px; font-weight:bold; background:#f8f8f8; color:#111; }
+.deck-snap-card.red { color:var(--card-red); }
+.deck-snap-card.unknown { background:#1c2128; color:var(--dim); border-color:#30363d; }
+.deck-snap-card.top { border-color:var(--gold); box-shadow:0 0 6px rgba(232,200,74,.75); }
+.round-summary { background:#0d1117; border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+.round-row { display:grid; grid-template-columns:54px repeat(4,minmax(0,1fr)); gap:8px;
+  align-items:center; padding:5px 8px; border-bottom:1px solid #1c2128; font-size:11px; }
+.round-row:last-child { border-bottom:none; }
+.round-row.rh { background:#21262d; color:var(--dim); font-size:10px; text-transform:uppercase; letter-spacing:1px; }
+.round-row span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.round-win { font-weight:bold; }
 
 #board { position:relative; overflow:visible; flex:1; display:flex;
   align-items:center; justify-content:center; }
@@ -125,6 +150,26 @@ body { background:var(--bg); color:var(--text); font-family:'Courier New',monosp
 /* Greasy + deck areas inside table */
 .tarea { display:flex; flex-direction:column; align-items:center; gap:4px; }
 .albl { font-size:8px; color:rgba(255,255,255,.4); text-transform:uppercase; letter-spacing:1px; }
+#mutex-lines { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:5; overflow:visible; }
+.mutex-line { fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round;
+  opacity:.9; filter:drop-shadow(0 0 4px currentColor); stroke-dasharray:7 5;
+  animation:mutexFlow 1.2s linear infinite; }
+.mutex-dot { filter:drop-shadow(0 0 4px currentColor); opacity:.95; }
+@keyframes mutexFlow { to { stroke-dashoffset:-24; } }
+#mutex-key { position:absolute; left:50%; bottom:8px; transform:translateX(-50%);
+  display:flex; align-items:center; gap:8px; padding:6px 10px;
+  background:rgba(0,0,0,.52); border:1px solid rgba(232,200,74,.28); border-radius:6px;
+  color:rgba(255,255,255,.78); font-size:12px; z-index:6; white-space:nowrap;
+  box-shadow:0 4px 12px rgba(0,0,0,.28); }
+.mx { display:flex; align-items:center; gap:2px; opacity:.42; transition:opacity .15s, color .15s, text-shadow .15s; }
+.mx.on { opacity:1; color:var(--mx-color,var(--gold)); text-shadow:0 0 8px var(--mx-glow,rgba(232,200,74,.8)); }
+#mx-game { --mx-color:#e8c84a; --mx-glow:rgba(232,200,74,.85); }
+#mx-bag { --mx-color:#f97316; --mx-glow:rgba(249,115,22,.85); }
+#mx-rand { --mx-color:#58a6ff; --mx-glow:rgba(88,166,255,.85); }
+#mx-log { --mx-color:#c084fc; --mx-glow:rgba(192,132,252,.85); }
+#mx-barrier { --mx-color:#3fb950; --mx-glow:rgba(63,185,80,.85); }
+.mx-label { color:var(--gold); margin-right:4px; font-weight:bold; letter-spacing:.4px;
+  text-transform:uppercase; text-shadow:0 0 8px rgba(232,200,74,.55); }
 
 /* Cards */
 .card { width:36px; height:52px; background:white; border-radius:4px;
@@ -139,6 +184,14 @@ body { background:var(--bg); color:var(--text); font-family:'Courier New',monosp
 .card.gcard{border:2px solid var(--gold);box-shadow:0 0 10px rgba(232,200,74,.75),1px 2px 5px rgba(0,0,0,.5);}
 .card.back{background:linear-gradient(135deg,#1e3a5f 0%,#2e5499 60%,#1e3a5f 100%);
   border:2px solid #4a90d9;}
+.seat.sa { z-index:24; gap:6px; }
+.seat.sa .shand { gap:9px; min-height:64px; align-items:flex-start; padding-top:2px; }
+.seat.sa .shand .card {
+  transform:scale(1.16) translateY(4px);
+  transform-origin:center top;
+  box-shadow:0 0 14px rgba(232,200,74,.85),2px 4px 10px rgba(0,0,0,.65);
+  transition:transform .18s ease, box-shadow .18s ease;
+}
 
 /* Big greasy card in center */
 #gc { width:44px; height:64px; background:white; border-radius:5px;
@@ -159,17 +212,32 @@ body { background:var(--bg); color:var(--text); font-family:'Courier New',monosp
 #dc-lbl { font-size:11px; color:rgba(255,255,255,.6); text-align:center; }
 
 /* Chip bag */
-#bag { position:absolute; bottom:18px; right:calc(26% - 30px);
-  display:flex; flex-direction:column; align-items:center; gap:2px; }
+#bag { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  display:flex; flex-direction:column; align-items:center; gap:2px; z-index:9;
+  transition:left .45s ease, top .45s ease, transform .45s ease; }
 .bag-vis { width:50px; height:46px;
   background:radial-gradient(ellipse at 40% 35%,#f0c040,#c8960c);
   border-radius:50% 50% 32% 32% / 45% 45% 32% 32%;
   border:2px solid #a07808; box-shadow:0 3px 8px rgba(0,0,0,.6);
   display:flex; align-items:center; justify-content:center;
   flex-direction:column; }
+#bag.moving .bag-vis { animation:bagHop .45s ease; }
+#bag.vibrate .bag-vis { animation:bagVibrate .28s linear; }
+@keyframes bagHop {
+  0%,100% { transform:translateY(0) rotate(0deg); }
+  45% { transform:translateY(-8px) rotate(-5deg); }
+}
+@keyframes bagVibrate {
+  0%,100% { transform:translateX(0) rotate(0deg); }
+  20% { transform:translateX(-2px) rotate(-2deg); }
+  40% { transform:translateX(2px) rotate(2deg); }
+  60% { transform:translateX(-1px) rotate(-1deg); }
+  80% { transform:translateX(1px) rotate(1deg); }
+}
 .bc { font-size:15px; font-weight:bold; color:#1a1a00; }
 .bcs { font-size:8px; color:#4a3000; }
-.bn { font-size:9px; color:rgba(255,255,255,.5); }
+.bn { font-size:9px; color:rgba(255,255,255,.72); text-align:center; line-height:1.2;
+  background:rgba(0,0,0,.35); border-radius:3px; padding:1px 4px; white-space:nowrap; }
 
 /* Player seats */
 .seat { position:absolute; display:flex; flex-direction:column;
@@ -187,17 +255,17 @@ body { background:var(--bg); color:var(--text); font-family:'Courier New',monosp
   background:linear-gradient(135deg,#172033 0%,#2a4f89 52%,#0f1b2d 100%);
   color:var(--gold); display:flex; align-items:center; justify-content:center;
   font-size:16px; font-weight:bold; box-shadow:0 0 14px rgba(232,200,74,.65),1px 2px 5px rgba(0,0,0,.55);
-  position:relative; overflow:hidden; animation:dealerPulse 1.4s ease-in-out infinite;
+  position:relative; overflow:hidden; animation:dealerPulse 2.8s ease-in-out infinite;
 }
 .dealer-card::before {
   content:''; position:absolute; inset:-35% -80%;
   background:linear-gradient(90deg,transparent,rgba(255,255,255,.42),transparent);
-  transform:rotate(25deg); animation:dealerSweep 2.2s ease-in-out infinite;
+  transform:rotate(25deg); animation:dealerSweep 4.2s ease-in-out infinite;
 }
 .dealer-card span { position:relative; z-index:1; text-shadow:0 0 8px rgba(232,200,74,.9); }
 @keyframes dealerPulse {
-  0%,100% { transform:translateY(0) rotate(-2deg); box-shadow:0 0 10px rgba(232,200,74,.5),1px 2px 5px rgba(0,0,0,.55); }
-  50% { transform:translateY(-4px) rotate(2deg); box-shadow:0 0 20px rgba(232,200,74,.9),1px 5px 9px rgba(0,0,0,.6); }
+  0%,100% { transform:translateY(0) rotate(-1deg); box-shadow:0 0 10px rgba(232,200,74,.5),1px 2px 5px rgba(0,0,0,.55); }
+  50% { transform:translateY(-2px) rotate(1deg); box-shadow:0 0 18px rgba(232,200,74,.85),1px 4px 8px rgba(0,0,0,.6); }
 }
 @keyframes dealerSweep {
   0%,35% { transform:translateX(-120%) rotate(25deg); }
@@ -288,6 +356,8 @@ body { background:var(--bg); color:var(--text); font-family:'Courier New',monosp
         <div class="frow"><span class="fk">chips</span><span class="fv" id="fv-chips">0</span></div>
         <div class="frow"><span class="fk">bag_number</span><span class="fv" id="fv-bn">1</span></div>
         <div class="frow"><span class="fk">chips_per_bag</span><span class="fv" id="fv-cpb">30</span></div>
+        <div class="frow"><span class="fk">total_bags</span><span class="fv" id="fv-tbags">0</span></div>
+        <div class="frow"><span class="fk">round_chips</span><span class="fv" id="fv-rchips">0</span></div>
         <div class="frow"><span class="fk">lock</span><span class="fv" style="color:var(--dim)">mutex</span></div>
       </div>
     </div>
@@ -338,6 +408,7 @@ body { background:var(--bg); color:var(--text); font-family:'Courier New',monosp
       <!-- Tab: Game Table -->
       <div id="panel-table" class="tab-panel tp-active">
         <div id="board">
+          <svg id="mutex-lines" aria-hidden="true"></svg>
           <div id="table">
             <div class="tarea">
               <div class="albl">Greasy Card</div>
@@ -352,6 +423,14 @@ body { background:var(--bg); color:var(--text); font-family:'Courier New',monosp
               </div>
               <div id="dc-lbl">52 cards</div>
             </div>
+          </div>
+          <div id="mutex-key" aria-label="Mutex key">
+            <span class="mx-label">🔐 Mutex Locks</span>
+            <span class="mx" id="mx-game" title="game_lock: turn, round, deck, and hand state">🎮 game</span>
+            <span class="mx" id="mx-bag" title="bag.lock: chip bag access">🥔 bag</span>
+            <span class="mx" id="mx-rand" title="rand_lock: deterministic random draws">🎲 rng</span>
+            <span class="mx" id="mx-log" title="log_lock: game.log writes">📝 log</span>
+            <span class="mx" id="mx-barrier" title="barrier_lock: end-of-round wait">🚧 barrier</span>
           </div>
           <div id="bag">
             <div class="bag-vis"><span class="bc" id="b-chips">0</span><span class="bcs">chips</span></div>
@@ -375,7 +454,20 @@ body { background:var(--bg); color:var(--text); font-family:'Courier New',monosp
 
       <!-- Tab: Deck Track -->
       <div id="panel-deck" class="tab-panel chart-panel">
-        <div class="cwrap" style="flex:1"><canvas id="ch-deck"></canvas></div>
+        <div class="deck-stats">
+          <div class="deck-stat"><span class="dk">Remaining</span><span class="dv" id="deck-stat-count">52</span></div>
+          <div class="deck-stat"><span class="dk">Draw Head</span><span class="dv" id="deck-stat-top">0</span></div>
+          <div class="deck-stat"><span class="dk">Tail Slot</span><span class="dv" id="deck-stat-tail">0</span></div>
+          <div class="deck-stat"><span class="dk">Visible Cards</span><span class="dv" id="deck-stat-known">0</span></div>
+        </div>
+        <div class="cwrap"><canvas id="ch-deck"></canvas></div>
+        <div class="deck-snapshot">
+          <div class="deck-snap-head">
+            <span>Current deck order</span>
+            <span id="deck-snap-note">top to bottom</span>
+          </div>
+          <div id="deck-snapshot-row"></div>
+        </div>
       </div>
 
       <!-- Tab: Player Stats -->
@@ -390,7 +482,8 @@ body { background:var(--bg); color:var(--text); font-family:'Courier New',monosp
 
       <!-- Tab: Rounds -->
       <div id="panel-rounds" class="tab-panel chart-panel">
-        <div class="cwrap" style="flex:1"><canvas id="ch-rounds"></canvas></div>
+        <div class="cwrap"><canvas id="ch-rounds"></canvas></div>
+        <div class="round-summary" id="round-summary"></div>
       </div>
 
     </div><!-- #tabcontent -->
@@ -414,7 +507,12 @@ body { background:var(--bg); color:var(--text); font-family:'Courier New',monosp
 let G = { seed: 5, np: 6, cpb: 30 };
 let states = [], events = [], nPlayers = 6;
 let CD = {};
-const PC = ['#58a6ff','#3fb950','#f97316','#c084fc','#e8c84a','#f85149'];
+const PC = [
+  '#58a6ff','#3fb950','#f97316','#c084fc','#e8c84a',
+  '#f85149','#2dd4bf','#fb7185','#a3e635','#facc15',
+  '#38bdf8','#fb923c','#d946ef','#22c55e','#ef4444',
+  '#14b8a6','#818cf8','#f59e0b','#84cc16','#ec4899'
+];
 let seatEls = [];
 let currentIdx = 0;
 let playing = false;
@@ -605,6 +703,12 @@ function miniCard(name, isGreasy=false) {
   return `<span class="mc ${color}${isGreasy?' glow':''}">${name}</span>`;
 }
 
+function deckSnapCard(name, isTop=false) {
+  if (!name) return `<span class="deck-snap-card unknown${isTop?' top':''}">?</span>`;
+  const {color} = cardInfo(name);
+  return `<span class="deck-snap-card ${color}${isTop?' top':''}">${name}</span>`;
+}
+
 function dealerMarkerHTML() {
   return '<div class="dealer-card"><span>D</span></div>';
 }
@@ -650,15 +754,42 @@ function parseLine(line) {
 // ════════════════════════════════════════════════════════════════
 function clone(s) { return JSON.parse(JSON.stringify(s)); }
 
+function locksForEvent(ev) {
+  const locks = {game:false, bag:false, rand:false, log:false, barrier:false};
+  if (!ev) return locks;
+  locks.log = ev.type !== 'unknown';
+  if (['shuffle','greasy','hand_single','draw','hand_multi','discard','win','lost','round_ends','deck_state'].includes(ev.type))
+    locks.game = true;
+  if (['shuffle','greasy','draw','discard','eat'].includes(ev.type))
+    locks.rand = true;
+  if (['bag_reset','bag_upd','open_bag','eat'].includes(ev.type))
+    locks.bag = true;
+  if (['lost','round_ends'].includes(ev.type))
+    locks.barrier = true;
+  return locks;
+}
+
+function lockHolderForEvent(s, ev, prevEv) {
+  if (!ev) return 0;
+  if (ev.p) return ev.p;
+  if (ev.type === 'bag_reset')
+    return prevEv?.type === 'open_bag' ? prevEv.p : s.dealer;
+  if (ev.type === 'bag_upd' || ev.type === 'deck_state')
+    return prevEv?.p || s.currentTurn || s.dealer || 0;
+  return s.currentTurn || s.dealer || 0;
+}
+
 function mkState() {
   return {
     round:0, dealer:0, greasyCard:null, currentTurn:0,
     roundWinner:-1, roundOver:false, nPlayers:0,
     dealing:false, dealCount:0, chipsPerBag:30,
     deckTop:0, deckCount:52, deckVisible:[], deckKnown:[],
-    bag:{chips:0, bagNum:1, cpb:30},
+    bag:{chips:0, bagNum:1, cpb:30, holder:1, totalBags:0, roundChips:0},
     players:[],
     msg:'', lastEvent:null, barrierCount:0,
+    locks:{game:false, bag:false, rand:false, log:false, barrier:false},
+    lockHolder:0,
     threadStatus:[]
   };
 }
@@ -708,7 +839,9 @@ function buildSimulation(rawLog) {
   for (let ei = 0; ei < events.length; ei++) {
     const ev = events[ei];
     const s = clone(cur);
+    const prevEv = cur.lastEvent;
     s.lastEvent = ev;
+    s.locks = locksForEvent(ev);
     const pi = ev.p ? ev.p - 1 : -1;
 
     switch (ev.type) {
@@ -716,6 +849,7 @@ function buildSimulation(rawLog) {
         s.round = ev.round; s.dealer = ev.p; s.dealing = true; s.dealCount = 0;
         s.roundWinner = -1; s.roundOver = false; s.currentTurn = 0; s.barrierCount = 0;
         s.deckTop = 0; s.deckCount = 52; s.deckVisible = []; s.deckKnown = [];
+        s.bag.holder = ev.p; s.bag.roundChips = 0;
         for (const p of s.players) { p.hand = []; p.status = p.id === ev.p ? 'dealer' : 'waiting'; }
         s.threadStatus = s.players.map(p => p.id === ev.p ? 'running' : 'sleeping');
         s.msg = `Round ${ev.round} begins — Player ${ev.p} shuffles the deck`;
@@ -779,10 +913,16 @@ function buildSimulation(rawLog) {
         break;
 
       case 'bag_reset':
-        s.bag.chips = ev.chips; s.bag.cpb = ev.chips; s.chipsPerBag = ev.chips; s.bag.bagNum = 1;
-        s.msg = s.dealing
-          ? `Round setup complete — chip bag filled to ${ev.chips}`
-          : `New round — chip bag reset to ${ev.chips} chips`;
+        s.bag.chips = ev.chips; s.bag.cpb = ev.chips; s.chipsPerBag = ev.chips;
+        if (prevEv?.type === 'open_bag') {
+          s.bag.holder = prevEv.p;
+          s.msg = `Bag #${s.bag.bagNum} filled to ${ev.chips} chips`;
+        } else {
+          s.bag.bagNum = 1; s.bag.holder = s.dealer; s.bag.totalBags++;
+          s.msg = s.dealing
+            ? `Round setup complete — dealer opens bag #1 with ${ev.chips} chips`
+            : `New round — chip bag reset to ${ev.chips} chips`;
+        }
         break;
 
       case 'bag_upd':
@@ -791,11 +931,12 @@ function buildSimulation(rawLog) {
         break;
 
       case 'open_bag':
-        s.bag.bagNum = ev.bag;
+        s.bag.bagNum = ev.bag; s.bag.holder = ev.p; s.bag.totalBags++;
         s.msg = `Player ${ev.p} opens a new chip bag (bag #${ev.bag})`;
         break;
 
       case 'eat':
+        s.bag.holder = ev.p; s.bag.roundChips += ev.amt;
         s.msg = `Player ${ev.p} eats ${ev.amt} chip${ev.amt !== 1 ? 's' : ''}`;
         break;
 
@@ -805,12 +946,13 @@ function buildSimulation(rawLog) {
         break;
     }
 
+    s.lockHolder = lockHolderForEvent(s, ev, prevEv);
     states.push(s); cur = s;
   }
 
   // Build chart data arrays
   CD = {
-    bagChips: [], deckCount: [], handSizes: [],
+    bagChips: [], bagTotals: [], deckCount: [], handSizes: [],
     cumWins: [], cumChips: [], cumTurns: [],
     roundTurns:   Array(nPlayers).fill(0),
     roundWinners: Array(nPlayers).fill(0),
@@ -832,6 +974,7 @@ function buildSimulation(rawLog) {
         if (ev.type === 'draw') { turns[ev.p-1]++; if (curR > 0 && curR-1 < nPlayers) CD.roundTurns[curR-1]++; }
       }
       CD.bagChips.push(s.bag.chips);
+      CD.bagTotals.push(s.bag.totalBags);
       CD.deckCount.push(s.deckCount);
       CD.handSizes.push(s.players.map(p => p.hand.length));
       CD.cumWins.push([...wins]);
@@ -949,13 +1092,35 @@ function cLegend(ctx, W, H, items) {
   }
 }
 
+function cStepLine(ctx, data, lay, {color, yMax, width=1.5}) {
+  if (!data.length) return;
+  const {x0,y1,w,h} = lay, n=data.length;
+  const px = i => x0+(n<=1?0:(i/(n-1))*w);
+  const py = v => y1-(Math.max(0,Math.min(yMax,v))/yMax)*h;
+  ctx.strokeStyle=color; ctx.lineWidth=width; ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(px(0), py(data[0] || 0));
+  for (let i=1; i<n; i++) {
+    ctx.lineTo(px(i), py(data[i-1] || 0));
+    ctx.lineTo(px(i), py(data[i] || 0));
+  }
+  ctx.stroke();
+}
+
 function drawChipBag(step) {
   const {ctx,W,H} = cCtx(document.getElementById('ch-bag'));
   const lay = cPad(W,H,42,12,38,52);
   const cpb = states[states.length-1]?.chipsPerBag || G.cpb;
-  cAxes(ctx,lay,{yMax:cpb,title:'Chip Bag Level',sub:'chips remaining over every event step'});
+  const currentTotal = CD.bagTotals[Math.min(step,CD.bagTotals.length-1)] || 0;
+  const totalMax = Math.max(1, ...CD.bagTotals);
+  cAxes(ctx,lay,{yMax:cpb,title:'Chip Bag Level',sub:`chips remaining over every event step · total bags opened: ${currentTotal}`});
   cLine(ctx,CD.bagChips,lay,{color:'#e8c84a33',yMax:cpb,fill:false,width:1});
   cLine(ctx,CD.bagChips.slice(0,step+1),lay,{color:'#e8c84a',yMax:cpb,fill:true,width:2});
+  cStepLine(ctx,CD.bagTotals.slice(0,step+1),lay,{color:'#58a6ff',yMax:totalMax,width:2});
+  ctx.fillStyle='#58a6ff'; ctx.font='10px Courier New'; ctx.textAlign='right';
+  ctx.fillText('total bags', lay.x1, lay.y0-6);
+  ctx.fillText(totalMax, lay.x1+8, lay.y0+4);
+  ctx.fillText('0', lay.x1+8, lay.y1);
   for (let i=1; i<=Math.min(step,states.length-1); i++) {
     const ev=states[i].lastEvent; if(!ev) continue;
     const fx=lay.x0+(i/(CD.bagChips.length-1||1))*lay.w;
@@ -970,32 +1135,40 @@ function drawChipBag(step) {
     }
   }
   cCursor(ctx,step/(CD.bagChips.length-1||1),lay);
-  cLegend(ctx,W,H,[{label:'Chips remaining',color:'#e8c84a'},{label:'Round reset',color:'#3fb950'},{label:'New bag',color:'#f85149'},{label:'Current step',color:'rgba(232,200,74,.55)'}]);
+  cLegend(ctx,W,H,[{label:'Chips remaining',color:'#e8c84a'},{label:'Total bags opened',color:'#58a6ff'},{label:'Round reset',color:'#3fb950'},{label:'New bag',color:'#f85149'},{label:'Current step',color:'rgba(232,200,74,.55)'}]);
 }
 
 function drawDeck(step) {
   const {ctx,W,H} = cCtx(document.getElementById('ch-deck'));
   const lay = cPad(W,H,42,12,38,52);
-  cAxes(ctx,lay,{yMax:52,title:'Deck Size Over Time',sub:'cards remaining in circular buffer'});
+  const current = states[Math.min(step,states.length-1)] || states[0];
+  cAxes(ctx,lay,{yMax:52,title:'Deck Size Over Time',sub:`cards remaining in circular buffer · top ${current?.deckTop ?? 0} · tail ${current ? (current.deckTop + current.deckCount) % 52 : 0}`});
   cLine(ctx,CD.deckCount,lay,{color:'#58a6ff33',yMax:52,width:1});
   cLine(ctx,CD.deckCount.slice(0,step+1),lay,{color:'#58a6ff',yMax:52,fill:true,width:2});
   for (let i=1; i<=Math.min(step,states.length-1); i++) {
     const ev=states[i].lastEvent;
+    if(!ev) continue;
+    const fx=lay.x0+(i/(CD.deckCount.length-1||1))*lay.w;
     if(ev&&ev.type==='shuffle'){
-      const fx=lay.x0+(i/(CD.deckCount.length-1||1))*lay.w;
       ctx.strokeStyle='#e8c84a55'; ctx.lineWidth=1; ctx.setLineDash([2,2]);
       ctx.beginPath(); ctx.moveTo(fx,lay.y0); ctx.lineTo(fx,lay.y1); ctx.stroke(); ctx.setLineDash([]);
       ctx.fillStyle='#e8c84a'; ctx.font='8px Courier New'; ctx.textAlign='center';
       ctx.fillText(`R${ev.round}`,fx,lay.y0+10);
+    } else if(ev.type==='draw'){
+      ctx.fillStyle='#3fb950';
+      ctx.beginPath(); ctx.arc(fx, lay.y1-12, 3, 0, Math.PI*2); ctx.fill();
+    } else if(ev.type==='discard'){
+      ctx.fillStyle='#f97316';
+      ctx.fillRect(fx-2, lay.y1-24, 4, 4);
     }
   }
   cCursor(ctx,step/(CD.deckCount.length-1||1),lay);
-  cLegend(ctx,W,H,[{label:'Cards remaining',color:'#58a6ff'},{label:'Shuffle (round start)',color:'#e8c84a'}]);
+  cLegend(ctx,W,H,[{label:'Cards remaining',color:'#58a6ff'},{label:'Shuffle (round start)',color:'#e8c84a'},{label:'Draw',color:'#3fb950'},{label:'Discard returned',color:'#f97316'}]);
 }
 
 function drawWins(step) {
   const {ctx,W,H} = cCtx(document.getElementById('ch-wins'));
-  const lay = cPad(W,H,38,10,34,44);
+  const lay = cPad(W,H,38,10,34,22);
   const data = CD.cumWins[Math.min(step,CD.cumWins.length-1)]||Array(nPlayers).fill(0);
   cAxes(ctx,lay,{yMax:Math.max(1,...data,nPlayers),ticks:Math.min(nPlayers,6),title:'Wins Per Player'});
   const yMax=Math.max(1,...data,nPlayers), gW=lay.w/nPlayers;
@@ -1005,12 +1178,11 @@ function drawWins(step) {
     if(v>0){ctx.fillStyle='#fff';ctx.font='bold 10px Courier New';ctx.textAlign='center';ctx.fillText(v,bx+bW/2,lay.y1-bh-3);}
     ctx.fillStyle='#8b949e';ctx.font='11px Courier New';ctx.textAlign='center';ctx.fillText(`P${i+1}`,lay.x0+(i+.5)*gW,lay.y1+14);
   }
-  cLegend(ctx,W,H,Array.from({length:Math.min(nPlayers,PC.length)},(_,i)=>({label:`P${i+1}`,color:PC[i%PC.length]})));
 }
 
 function drawChipsEaten(step) {
   const {ctx,W,H} = cCtx(document.getElementById('ch-cpeat'));
-  const lay = cPad(W,H,38,10,34,44);
+  const lay = cPad(W,H,38,10,34,22);
   const data = CD.cumChips[Math.min(step,CD.cumChips.length-1)]||Array(nPlayers).fill(0);
   const yMax=Math.max(10,...data);
   cAxes(ctx,lay,{yMax,title:'Chips Eaten'});
@@ -1021,12 +1193,11 @@ function drawChipsEaten(step) {
     if(v>0){ctx.fillStyle='#fff';ctx.font='10px Courier New';ctx.textAlign='center';ctx.fillText(v,bx+bW/2,lay.y1-bh-3);}
     ctx.fillStyle='#8b949e';ctx.font='11px Courier New';ctx.textAlign='center';ctx.fillText(`P${i+1}`,lay.x0+(i+.5)*gW,lay.y1+14);
   }
-  cLegend(ctx,W,H,Array.from({length:Math.min(nPlayers,PC.length)},(_,i)=>({label:`P${i+1}`,color:PC[i%PC.length]})));
 }
 
 function drawTurns(step) {
   const {ctx,W,H} = cCtx(document.getElementById('ch-turns'));
-  const lay = cPad(W,H,38,10,34,44);
+  const lay = cPad(W,H,38,10,34,22);
   const data = CD.cumTurns[Math.min(step,CD.cumTurns.length-1)]||Array(nPlayers).fill(0);
   const yMax=Math.max(5,...data);
   cAxes(ctx,lay,{yMax,title:'Turns Taken (draws)'});
@@ -1037,7 +1208,6 @@ function drawTurns(step) {
     if(v>0){ctx.fillStyle='#fff';ctx.font='10px Courier New';ctx.textAlign='center';ctx.fillText(v,bx+bW/2,lay.y1-bh-3);}
     ctx.fillStyle='#8b949e';ctx.font='11px Courier New';ctx.textAlign='center';ctx.fillText(`P${i+1}`,lay.x0+(i+.5)*gW,lay.y1+14);
   }
-  cLegend(ctx,W,H,Array.from({length:Math.min(nPlayers,PC.length)},(_,i)=>({label:`P${i+1}`,color:PC[i%PC.length]})));
 }
 
 function drawHandSizes(step) {
@@ -1049,14 +1219,14 @@ function drawHandSizes(step) {
     cLine(ctx,data,lay,{color:PC[pi%PC.length],yMax:3,width:1.5});
   }
   cCursor(ctx,step/(CD.handSizes.length-1||1),lay);
-  cLegend(ctx,W,H,Array.from({length:Math.min(nPlayers,PC.length)},(_,i)=>({label:`P${i+1}`,color:PC[i%PC.length]})));
+  cLegend(ctx,W,H,Array.from({length:nPlayers},(_,i)=>({label:`P${i+1}`,color:PC[i%PC.length]})));
 }
 
 function drawRounds() {
   const {ctx,W,H} = cCtx(document.getElementById('ch-rounds'));
   const lay = cPad(W,H,42,12,56,52);
   const n=CD.roundLabels.length, yMax=Math.max(5,...CD.roundTurns);
-  cAxes(ctx,lay,{yMax,title:'Turns Per Round',sub:'bar color = winning player · label shows winner and greasy card'});
+  cAxes(ctx,lay,{yMax,title:'Round Length',sub:'bar height = player draws before the winner; bar color = winner'});
   const gW=lay.w/n;
   for (let i=0; i<n; i++) {
     const v=CD.roundTurns[i]||0, w2=CD.roundWinners[i];
@@ -1069,7 +1239,23 @@ function drawRounds() {
     if(w2>0){ctx.fillStyle=PC[(w2-1)%PC.length];ctx.font='10px Courier New';ctx.fillText(`P${w2}`,lay.x0+(i+.5)*gW,lay.y1+26);}
     if(CD.greasyCards[i]){ctx.fillStyle='#e8c84a';ctx.font='9px Courier New';ctx.fillText(`★${CD.greasyCards[i]}`,lay.x0+(i+.5)*gW,lay.y1+39);}
   }
-  cLegend(ctx,W,H,Array.from({length:Math.min(nPlayers,PC.length)},(_,i)=>({label:`P${i+1} won`,color:PC[i%PC.length]})));
+  cLegend(ctx,W,H,Array.from({length:nPlayers},(_,i)=>({label:`P${i+1} won`,color:PC[i%PC.length]})));
+  const summary = document.getElementById('round-summary');
+  if (summary) {
+    summary.innerHTML = '<div class="round-row rh"><span>Round</span><span>Dealer</span><span>Winner</span><span>Greasy</span><span>Draws</span></div>' +
+      CD.roundLabels.map((label, i) => {
+        const dealer = i + 1;
+        const winner = CD.roundWinners[i] || 0;
+        const color = winner ? PC[(winner - 1) % PC.length] : 'var(--dim)';
+        return `<div class="round-row">
+          <span>${label}</span>
+          <span>P${dealer}</span>
+          <span class="round-win" style="color:${color}">${winner ? `P${winner}` : 'pending'}</span>
+          <span>${CD.greasyCards[i] || '-'}</span>
+          <span>${CD.roundTurns[i] || 0}</span>
+        </div>`;
+      }).join('');
+  }
 }
 
 function updateCharts() {
@@ -1096,6 +1282,8 @@ function setTab(name) {
 // SEAT LAYOUT  —  ellipse orbit around board center
 // ════════════════════════════════════════════════════════════════
 const SEAT_AX = 270, SEAT_AY = 200;
+const BAG_AX = 170, BAG_AY = 112;
+let bagHolder = 0;
 
 function positionSeats() {
   const n = seatEls.length;
@@ -1106,8 +1294,86 @@ function positionSeats() {
     seatEls[i].style.left = `calc(50% + ${dx}px)`;
     seatEls[i].style.top  = `calc(50% + ${-dy}px)`;
   }
+  positionBag(bagHolder);
 }
-window.addEventListener('resize', positionSeats);
+
+function playerOrbitPoint(pid, ax, ay) {
+  const n = seatEls.length;
+  if (!pid || n === 0) return {dx:0, dy:0};
+  const angle = Math.PI/2 - (2*Math.PI/n)*(pid - 1);
+  return {
+    dx: Math.round(ax * Math.cos(angle)),
+    dy: Math.round(ay * Math.sin(angle))
+  };
+}
+
+function positionBag(pid) {
+  const bagEl = document.getElementById('bag');
+  if (!bagEl) return;
+  bagHolder = pid || 0;
+  const {dx, dy} = playerOrbitPoint(bagHolder, BAG_AX, BAG_AY);
+  const n = seatEls.length;
+  let xNudge = 0, yNudge = 0;
+  if (bagHolder && n) {
+    const angle = Math.PI/2 - (2*Math.PI/n)*(bagHolder - 1);
+    xNudge = Math.round(-14 * Math.sign(Math.cos(angle)));
+    yNudge = Math.round(12 * Math.sign(Math.sin(angle)));
+  }
+  bagEl.style.left = `calc(50% + ${dx + xNudge}px)`;
+  bagEl.style.top  = `calc(50% + ${-dy + yNudge}px)`;
+}
+
+function drawMutexLines(s) {
+  const svg = document.getElementById('mutex-lines');
+  const key = document.getElementById('mutex-key');
+  const holder = s.lockHolder ? document.getElementById(`seat-${s.lockHolder}`) : null;
+  if (!svg || !key || !holder) { if (svg) svg.innerHTML = ''; return; }
+
+  const active = Object.entries(s.locks || {}).filter(([,on]) => on).map(([name]) => name);
+  if (!active.length) { svg.innerHTML = ''; return; }
+
+  const boardRect = board.getBoundingClientRect();
+  const keyRect = key.getBoundingClientRect();
+  const holderRect = holder.getBoundingClientRect();
+  const W = Math.max(1, boardRect.width), H = Math.max(1, boardRect.height);
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  const start = {
+    x: keyRect.left - boardRect.left + keyRect.width / 2,
+    y: keyRect.top - boardRect.top + 2
+  };
+  const end = {
+    x: holderRect.left - boardRect.left + holderRect.width / 2,
+    y: holderRect.top - boardRect.top + holderRect.height / 2
+  };
+  const colors = {game:'#e8c84a', bag:'#f97316', rand:'#58a6ff', log:'#c084fc', barrier:'#3fb950'};
+  const side = end.x < W / 2 ? 18 : W - 18;
+  const endSide = end.x < W / 2 ? end.x - holderRect.width / 2 - 10 : end.x + holderRect.width / 2 + 10;
+  const endX = Math.max(10, Math.min(W - 10, endSide));
+
+  svg.innerHTML = active.map((name, i) => {
+    const lane = i * 12;
+    const offset = (i - (active.length - 1) / 2) * 10;
+    const sx = start.x + offset;
+    const sy = start.y - lane;
+    const edgeX = side + (side < W / 2 ? lane : -lane);
+    const sideY = Math.max(20, Math.min(H - 34, end.y + offset));
+    const keyLift = Math.max(18, sy - 38);
+    const d = `M ${sx} ${sy}
+      C ${sx} ${keyLift}, ${edgeX} ${keyLift}, ${edgeX} ${sideY}
+      S ${endX} ${end.y}, ${end.x} ${end.y}`;
+    const color = colors[name] || '#e8c84a';
+    return `<path class="mutex-line" d="${d}" stroke="${color}" style="color:${color}"></path>
+      <circle class="mutex-dot" cx="${sx}" cy="${sy}" r="2.2" fill="${color}" style="color:${color}"></circle>
+      <circle class="mutex-dot" cx="${end.x}" cy="${end.y}" r="2.6" fill="${color}" style="color:${color}"></circle>`;
+  }).join('');
+}
+
+window.addEventListener('resize', () => {
+  positionSeats();
+  positionBag(bagHolder);
+  drawMutexLines(states[currentIdx] || {});
+});
 
 // ════════════════════════════════════════════════════════════════
 // RENDERER
@@ -1115,6 +1381,13 @@ window.addEventListener('resize', positionSeats);
 function render(idx) {
   const s = states[idx];
   if (!s) return;
+
+  const locks = s.locks || {};
+  ['game','bag','rand','log','barrier'].forEach(name => {
+    const el = document.getElementById(`mx-${name}`);
+    if (el) el.classList.toggle('on', !!locks[name]);
+  });
+  drawMutexLines(s);
 
   document.getElementById('b-r').textContent = s.round || '–';
   document.getElementById('b-g').textContent = s.greasyCard || '–';
@@ -1137,13 +1410,32 @@ function render(idx) {
 
   document.getElementById('dc-lbl').textContent = `${s.deckCount} cards`;
   document.getElementById('b-chips').textContent = s.bag.chips;
-  document.getElementById('b-bagn').textContent  = `Bag #${s.bag.bagNum}`;
+  document.getElementById('b-bagn').innerHTML  =
+    `Bag #${s.bag.bagNum} &middot; Total ${s.bag.totalBags}<br>Round chips ${s.bag.roundChips}`;
+  const prevBagHolder = bagHolder;
+  positionBag(s.bag.holder || s.dealer || s.currentTurn || 0);
+  const bagEl = document.getElementById('bag');
+  if (bagEl && s.lastEvent?.type === 'open_bag') {
+    bagEl.classList.remove('moving', 'vibrate');
+    void bagEl.offsetWidth;
+    bagEl.classList.add('vibrate');
+  } else if (bagEl && prevBagHolder !== bagHolder) {
+    bagEl.classList.remove('moving', 'vibrate');
+    void bagEl.offsetWidth;
+    bagEl.classList.add('moving');
+  }
 
   document.getElementById('fv-top').textContent   = s.deckTop;
   document.getElementById('fv-count').textContent = s.deckCount;
+  document.getElementById('deck-stat-count').textContent = s.deckCount;
+  document.getElementById('deck-stat-top').textContent = s.deckTop;
+  document.getElementById('deck-stat-tail').textContent = (s.deckTop + s.deckCount) % 52;
+  document.getElementById('deck-stat-known').textContent = s.deckVisible.length || 0;
   document.getElementById('fv-chips').textContent = s.bag.chips;
   document.getElementById('fv-bn').textContent    = s.bag.bagNum;
   document.getElementById('fv-cpb').textContent   = s.chipsPerBag || G.cpb;
+  document.getElementById('fv-tbags').textContent = s.bag.totalBags;
+  document.getElementById('fv-rchips').textContent = s.bag.roundChips;
   document.getElementById('fv-cr').textContent = s.round;
   document.getElementById('fv-ct').textContent = s.currentTurn || 0;
   document.getElementById('fv-dl').textContent = s.dealer || 0;
@@ -1192,6 +1484,15 @@ function render(idx) {
   });
 
   const vis = s.deckVisible, count = s.deckCount, top = s.deckTop;
+  const snapEl = document.getElementById('deck-snapshot-row');
+  if (snapEl) {
+    const cards = vis.length ? vis : Array.from({length:count}, () => '');
+    snapEl.innerHTML = cards.length
+      ? cards.map((c, i) => deckSnapCard(c, i === 0)).join('')
+      : '<span class="deck-snap-card unknown">empty</span>';
+    document.getElementById('deck-snap-note').textContent =
+      vis.length ? 'top to bottom' : `${count} cards; values unknown until DECK log`;
+  }
   for (let i = 0; i < 52; i++) {
     const cell = dcells[i];
     const slotInBuffer = (i - top + 52) % 52;
@@ -1322,3 +1623,4 @@ runSimulation();
 </script>
 </body>
 </html>
+
